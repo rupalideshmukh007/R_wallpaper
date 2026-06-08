@@ -1,4 +1,4 @@
-name: Tred Moves Build
+name: tradinganalyzer Build
 
 on:
   push:
