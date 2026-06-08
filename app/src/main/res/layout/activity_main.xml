@@ -10,45 +10,45 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="📊 Trading Analyzer"
-        android:textSize="28sp"
+        android:text="Tred Moves"
+        android:textSize="32sp"
         android:textStyle="bold"
         android:textColor="@color/primary"
-        android:layout_marginBottom="8dp"/>
+        android:layout_marginBottom="8dp" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Chart image upload करा आणि instant analysis मिळवा"
+        android:text="Chart upload करा - Instant Analysis मिळवा"
         android:textSize="14sp"
         android:textColor="@color/text_secondary"
         android:gravity="center"
-        android:layout_marginBottom="48dp"/>
+        android:layout_marginBottom="48dp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnGallery"
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:text="📷 Gallery मधून Chart Select करा"
+        android:text="Gallery मधून Chart Select करा"
         android:textSize="16sp"
         android:layout_marginBottom="16dp"
-        style="@style/Widget.Material3.Button"/>
+        style="@style/Widget.Material3.Button" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnHistory"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:text="📋 Analysis History"
+        android:text="Analysis History"
         android:textSize="15sp"
         android:layout_marginBottom="16dp"
-        style="@style/Widget.Material3.Button.OutlinedButton"/>
+        style="@style/Widget.Material3.Button.OutlinedButton" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnTradingInfo"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:text="📚 Trading Information"
+        android:text="Trading Information"
         android:textSize="15sp"
-        style="@style/Widget.Material3.Button.OutlinedButton"/>
+        style="@style/Widget.Material3.Button.OutlinedButton" />
 
 </LinearLayout>
