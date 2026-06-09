@@ -1,6 +1,5 @@
 package com.tradinganalyzer
 
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
@@ -8,8 +7,8 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.tradinganalyzer.analysis.ChartAnalyzer
 import com.tradinganalyzer.analysis.AnalysisResult
+import com.tradinganalyzer.analysis.ChartAnalyzer
 import com.tradinganalyzer.data.AppDatabase
 import com.tradinganalyzer.data.TradeRecord
 import com.tradinganalyzer.databinding.ActivityAnalysisBinding
@@ -24,7 +23,6 @@ import java.util.Locale
 class AnalysisActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAnalysisBinding
-    private var analysisResult: AnalysisResult? = null
     private var recordId: Long = -1L
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,20 +41,11 @@ class AnalysisActivity : AppCompatActivity() {
         }
 
         val imageUri = Uri.parse(imageUriString)
-
-        // Show image
         binding.imageView.setImageURI(imageUri)
-
-        // Start analysis
         analyzeChart(imageUri)
 
-        binding.btnRight.setOnClickListener {
-            saveFeedback(true)
-        }
-
-        binding.btnWrong.setOnClickListener {
-            saveFeedback(false)
-        }
+        binding.btnRight.setOnClickListener { saveFeedback(true) }
+        binding.btnWrong.setOnClickListener { saveFeedback(false) }
     }
 
     private fun analyzeChart(uri: Uri) {
@@ -71,14 +60,21 @@ class AnalysisActivity : AppCompatActivity() {
                     BitmapFactory.decodeStream(inputStream)
                 }
 
+                if (bitmap == null) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@AnalysisActivity, "Image load failed", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
                 val result = withContext(Dispatchers.Default) {
                     ChartAnalyzer.analyze(bitmap)
                 }
 
-                analysisResult = result
-                displayResult(result)
+                withContext(Dispatchers.Main) {
+                    displayResult(result)
+                }
 
-                // Save to database
                 recordId = withContext(Dispatchers.IO) {
                     val db = AppDatabase.getInstance(applicationContext)
                     val record = TradeRecord(
@@ -95,7 +91,7 @@ class AnalysisActivity : AppCompatActivity() {
 
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@AnalysisActivity, "Analysis error: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@AnalysisActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             } finally {
                 withContext(Dispatchers.Main) {
@@ -109,24 +105,24 @@ class AnalysisActivity : AppCompatActivity() {
         binding.cardResult.visibility = View.VISIBLE
         binding.cardFeedback.visibility = View.VISIBLE
 
-        // Signal
+        // Signal - BUY / SELL
         binding.tvSignal.text = result.signal
         binding.tvSignal.setTextColor(
             if (result.signal == "BUY") getColor(R.color.green) else getColor(R.color.red)
         )
 
-        // Confidence
+        // Confidence bar
         binding.tvConfidence.text = "Confidence: ${result.confidence}%"
         binding.progressConfidence.progress = result.confidence
 
         // Candle direction
         binding.tvCandleDirection.text = "📊 Candle Direction: ${result.trend}"
 
-        // Bullish/Bearish percentage
+        // Bullish / Bearish %
         binding.tvGreenPercent.text = "🟢 Bullish Candles: ${String.format("%.1f", result.greenPercent)}%"
         binding.tvRedPercent.text = "🔴 Bearish Candles: ${String.format("%.1f", result.redPercent)}%"
 
-        // Volume analysis
+        // Volume
         binding.tvVolumeInfo.text = "📈 Volume Analysis: ${result.volumeInfo}"
 
         // Market sentiment
@@ -135,19 +131,17 @@ class AnalysisActivity : AppCompatActivity() {
         // Support / Resistance
         binding.tvSupportResistance.text = "🎯 Key Levels:\n${result.supportResistance}"
 
-        // Summary
-        binding.tvSummary.text = result.summary
-
         // Investor info
         binding.tvInvestorInfo.text = "👥 ${result.investorInfo}"
+
+        // Summary
+        binding.tvSummary.text = result.summary
     }
 
     private fun saveFeedback(isCorrect: Boolean) {
         if (recordId == -1L) return
-
         lifecycleScope.launch(Dispatchers.IO) {
-            val db = AppDatabase.getInstance(applicationContext)
-            db.tradeDao().updateFeedback(recordId, isCorrect)
+            AppDatabase.getInstance(applicationContext).tradeDao().updateFeedback(recordId, isCorrect)
             withContext(Dispatchers.Main) {
                 val msg = if (isCorrect) "✅ Marked as CORRECT!" else "❌ Marked as WRONG!"
                 Toast.makeText(this@AnalysisActivity, msg, Toast.LENGTH_SHORT).show()
