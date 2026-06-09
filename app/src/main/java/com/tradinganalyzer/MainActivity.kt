@@ -61,13 +61,10 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.READ_EXTERNAL_STORAGE
         }
 
-        when {
-            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED -> {
-                openGallery()
-            }
-            else -> {
-                permissionLauncher.launch(permission)
-            }
+        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
+            openGallery()
+        } else {
+            permissionLauncher.launch(permission)
         }
     }
 
