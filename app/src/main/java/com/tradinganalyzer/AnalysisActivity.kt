@@ -53,6 +53,7 @@ class AnalysisActivity : AppCompatActivity() {
         binding.progressBar.visibility = View.VISIBLE
         binding.cardResult.visibility = View.GONE
         binding.cardFeedback.visibility = View.GONE
+        binding.cardNotChart.visibility = View.GONE
 
         lifecycleScope.launch {
             try {
@@ -73,21 +74,27 @@ class AnalysisActivity : AppCompatActivity() {
                 }
 
                 withContext(Dispatchers.Main) {
-                    displayResult(result)
+                    if (result.isValidChart) {
+                        displayResult(result)
+                    } else {
+                        showNotChartError(result.notChartReason)
+                    }
                 }
 
-                recordId = withContext(Dispatchers.IO) {
-                    val db = AppDatabase.getInstance(applicationContext)
-                    val record = TradeRecord(
-                        date = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date()),
-                        signal = result.signal,
-                        confidence = result.confidence,
-                        greenPercent = result.greenPercent,
-                        redPercent = result.redPercent,
-                        trend = result.trend,
-                        isCorrect = null
-                    )
-                    db.tradeDao().insert(record)
+                if (result.isValidChart) {
+                    recordId = withContext(Dispatchers.IO) {
+                        val db = AppDatabase.getInstance(applicationContext)
+                        val record = TradeRecord(
+                            date = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date()),
+                            signal = result.signal,
+                            confidence = result.confidence,
+                            greenPercent = result.greenPercent,
+                            redPercent = result.redPercent,
+                            trend = result.trend,
+                            isCorrect = null
+                        )
+                        db.tradeDao().insert(record)
+                    }
                 }
 
             } catch (e: Exception) {
@@ -102,9 +109,17 @@ class AnalysisActivity : AppCompatActivity() {
         }
     }
 
+    private fun showNotChartError(reason: String) {
+        binding.cardNotChart.visibility = View.VISIBLE
+        binding.cardResult.visibility = View.GONE
+        binding.cardFeedback.visibility = View.GONE
+        binding.tvNotChartReason.text = reason
+    }
+
     private fun displayResult(result: AnalysisResult) {
         binding.cardResult.visibility = View.VISIBLE
         binding.cardFeedback.visibility = View.VISIBLE
+        binding.cardNotChart.visibility = View.GONE
 
         binding.tvSignal.text = result.signal
         if (result.signal == "BUY") {
