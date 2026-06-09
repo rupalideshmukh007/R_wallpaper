@@ -1,4 +1,4 @@
-name: tradinganalyzer Build
+name: Android Build
 
 on:
   push:
@@ -21,17 +21,17 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle 8.9
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
 
       - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: gradle assembleDebug --no-daemon --info 2>&1 | tail -100
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: TredMoves-Debug-APK
+          name: TradingAnalyzer-Debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
