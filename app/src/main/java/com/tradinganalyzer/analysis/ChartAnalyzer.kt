@@ -3,21 +3,34 @@ package com.tradinganalyzer.analysis
 import android.graphics.Bitmap
 import android.graphics.Color
 import kotlin.math.abs
-import kotlin.math.max
 import kotlin.math.min
-import kotlin.random.Random
+
+data class AnalysisResult(
+    val isValidChart: Boolean,
+    val notChartReason: String = "",
+    val signal: String = "",
+    val confidence: Int = 0,
+    val greenPercent: Float = 0f,
+    val redPercent: Float = 0f,
+    val trend: String = "",
+    val volumeInfo: String = "",
+    val sentiment: String = "",
+    val supportResistance: String = "",
+    val summary: String = "",
+    val investorInfo: String = ""
+)
 
 object ChartAnalyzer {
 
     fun analyze(bitmap: Bitmap): AnalysisResult {
         val scaledBitmap = Bitmap.createScaledBitmap(bitmap, 200, 200, true)
-        
+
         var greenPixels = 0L
         var redPixels = 0L
+        var skinPixels = 0L
         var totalPixels = 0L
-        var brightnessSum = 0L
+        var backgroundPixels = 0L
 
-        // Analyze pixel colors
         for (x in 0 until scaledBitmap.width) {
             for (y in 0 until scaledBitmap.height) {
                 val pixel = scaledBitmap.getPixel(x, y)
@@ -27,25 +40,36 @@ object ChartAnalyzer {
                 val alpha = Color.alpha(pixel)
 
                 if (alpha < 50) continue
-                
-                // Skip mostly white/gray backgrounds
-                val brightness = (r + g + b) / 3
-                if (brightness > 230) continue
-                
                 totalPixels++
-                brightnessSum += brightness
 
-                val maxChannel = max(r, max(g, b))
-                val minChannel = min(r, min(g, b))
+                val brightness = (r + g + b) / 3
+
+                // Background (white/light gray) pixels
+                if (brightness > 220) {
+                    backgroundPixels++
+                    continue
+                }
+
+                // Skin tone detection (selfie/face)
+                // Skin: R is high, G is medium, B is low
+                val isSkin = r > 100 && g > 50 && b > 30 &&
+                        r > g && r > b &&
+                        (r - g) > 10 && (r - g) < 120 &&
+                        b < 180 && g < 200
+
+                if (isSkin) {
+                    skinPixels++
+                    continue
+                }
+
+                val maxChannel = maxOf(r, g, b)
+                val minChannel = minOf(r, g, b)
                 val saturation = if (maxChannel > 0) (maxChannel - minChannel).toFloat() / maxChannel else 0f
 
-                // Only count colored pixels (not gray/white)
-                if (saturation > 0.15f) {
+                if (saturation > 0.2f) {
                     when {
-                        // Green-dominant pixel
-                        g > r && g > b && g > 80 -> greenPixels++
-                        // Red-dominant pixel
-                        r > g && r > b && r > 80 -> redPixels++
+                        g > r && g > b && g > 60 -> greenPixels++
+                        r > g && r > b && r > 60 -> redPixels++
                     }
                 }
             }
@@ -53,48 +77,78 @@ object ChartAnalyzer {
 
         scaledBitmap.recycle()
 
+        val analyzablePixels = totalPixels - backgroundPixels
+        if (analyzablePixels <= 0) {
+            return AnalysisResult(
+                isValidChart = false,
+                notChartReason = "Image खूप light/blank आहे. Chart screenshot upload करा."
+            )
+        }
+
+        // Skin tone check - selfie/face detection
+        val skinRatio = skinPixels.toFloat() / analyzablePixels
+        if (skinRatio > 0.15f) {
+            return AnalysisResult(
+                isValidChart = false,
+                notChartReason = "हे Chart नाही!\n\nहे selfie किंवा photo दिसत आहे.\n\nकृपया Trading Chart चा screenshot upload करा.\n(NSE, BSE, TradingView, Zerodha Kite, Upstox, Angel One इत्यादींचे chart)"
+            )
+        }
+
         val coloredPixels = greenPixels + redPixels
+        val colorRatio = coloredPixels.toFloat() / analyzablePixels
+
+        // Not enough chart colors
+        if (colorRatio < 0.03f) {
+            return AnalysisResult(
+                isValidChart = false,
+                notChartReason = "Chart patterns सापडले नाहीत!\n\nहे Candlestick chart नसेल.\n\nकृपया Green/Red candles असलेला chart upload करा.\n(Color candlestick chart असणे आवश्यक आहे)"
+            )
+        }
+
+        // Valid chart - do analysis
         val greenPercent: Float
         val redPercent: Float
 
         if (coloredPixels > 0) {
-            greenPercent = (greenPixels.toFloat() / coloredPixels * 100f)
-            redPercent = (redPixels.toFloat() / coloredPixels * 100f)
+            greenPercent = greenPixels.toFloat() / coloredPixels * 100f
+            redPercent = redPixels.toFloat() / coloredPixels * 100f
         } else {
-            // Fallback: slight randomness around 50%
-            val base = 45f + Random.nextFloat() * 10f
-            greenPercent = base
-            redPercent = 100f - base
+            greenPercent = 50f
+            redPercent = 50f
         }
 
-        // Determine signal
+        val diff = abs(greenPercent - redPercent)
+
         val signal: String
         val confidence: Int
         val trend: String
 
-        val diff = abs(greenPercent - redPercent)
-
         when {
-            greenPercent > redPercent + 10 -> {
+            greenPercent > redPercent + 15 -> {
                 signal = "BUY"
-                confidence = (60 + min(diff.toInt(), 35)).coerceIn(60, 95)
+                confidence = (62 + min(diff.toInt() / 2, 28)).coerceIn(62, 90)
                 trend = "UPTREND ↑"
             }
-            redPercent > greenPercent + 10 -> {
+            redPercent > greenPercent + 15 -> {
                 signal = "SELL"
-                confidence = (60 + min(diff.toInt(), 35)).coerceIn(60, 95)
+                confidence = (62 + min(diff.toInt() / 2, 28)).coerceIn(62, 90)
                 trend = "DOWNTREND ↓"
             }
+            greenPercent > redPercent -> {
+                signal = "BUY"
+                confidence = (50 + diff.toInt()).coerceIn(50, 62)
+                trend = "WEAK UPTREND ↗"
+            }
             else -> {
-                signal = if (greenPercent >= redPercent) "BUY" else "SELL"
-                confidence = (50 + diff.toInt()).coerceIn(50, 65)
-                trend = "SIDEWAYS →"
+                signal = "SELL"
+                confidence = (50 + diff.toInt()).coerceIn(50, 62)
+                trend = "WEAK DOWNTREND ↘"
             }
         }
 
         val volumeInfo = when {
-            totalPixels > 10000 -> "High Volume - Strong Signal 🔥"
-            totalPixels > 5000 -> "Medium Volume - Moderate Signal ⚡"
+            colorRatio > 0.15f -> "High Volume - Strong Signal 🔥"
+            colorRatio > 0.08f -> "Medium Volume - Moderate Signal ⚡"
             else -> "Low Volume - Weak Signal ⚠️"
         }
 
@@ -105,13 +159,38 @@ object ChartAnalyzer {
             else -> "Mildly Bearish 📉"
         }
 
-        val supportResistance = generateSupportResistance(signal, confidence)
+        val supportResistance = if (signal == "BUY") {
+            "Support zone strong आहे.\nBullish candles जास्त दिसत आहेत.\nNext resistance वर target set करा."
+        } else {
+            "Resistance zone strong आहे.\nBearish candles जास्त दिसत आहेत.\nNext support वर stop-loss ठेवा."
+        }
 
-        val summary = generateSummary(signal, confidence, greenPercent, redPercent, trend)
+        val summary = buildString {
+            appendLine("📋 Analysis Summary:")
+            appendLine("━━━━━━━━━━━━━━━━━━━")
+            appendLine("Chart मध्ये ${"%.1f".format(greenPercent)}% bullish आणि ${"%.1f".format(redPercent)}% bearish candles आढळल्या.")
+            appendLine()
+            appendLine("Trend: $trend")
+            appendLine("Signal: $signal")
+            appendLine("Confidence: $confidence%")
+            appendLine()
+            if (confidence >= 75) {
+                appendLine("⚡ Strong signal — योग्य Stop-Loss सह trade करा.")
+            } else {
+                appendLine("⚠️ Moderate signal — सावधपणे trade करा, confirm होण्याची वाट पाहा.")
+            }
+            appendLine()
+            append("⚠️ हे technical analysis आहे. Investment before expert consult करा.")
+        }
 
-        val investorInfo = generateInvestorInfo(signal, confidence)
+        val investorInfo = if (signal == "BUY") {
+            "Institutional investors या level वर accumulation करत आहेत. Bullish sentiment $confidence% आहे."
+        } else {
+            "Smart money exit होत आहे. Distribution phase दिसत आहे. Bearish sentiment $confidence% आहे."
+        }
 
         return AnalysisResult(
+            isValidChart = true,
             signal = signal,
             confidence = confidence,
             greenPercent = greenPercent,
@@ -123,41 +202,5 @@ object ChartAnalyzer {
             summary = summary,
             investorInfo = investorInfo
         )
-    }
-
-    private fun generateSupportResistance(signal: String, confidence: Int): String {
-        return if (signal == "BUY") {
-            "Support zone strong दिसत आहे.\nBullish reversal pattern detect झाले.\nNext resistance वर target set करा."
-        } else {
-            "Resistance zone strong दिसत आहे.\nBearish pattern confirm झाले.\nNext support वर target set करा."
-        }
-    }
-
-    private fun generateSummary(
-        signal: String, confidence: Int,
-        greenPct: Float, redPct: Float, trend: String
-    ): String {
-        val action = if (signal == "BUY") "खरेदी (BUY)" else "विक्री (SELL)"
-        return """
-📋 Analysis Summary:
-━━━━━━━━━━━━━━━━━━━
-Chart वर ${"%.1f".format(greenPct)}% bullish आणि ${"%.1f".format(redPct)}% bearish activity आढळली.
-
-Trend: $trend
-Recommendation: $action
-Confidence: $confidence%
-
-${if (confidence >= 75) "⚡ Strong signal - योग्य risk management सह trade करा." else "⚠️ Moderate signal - सावधपणे trade करा."}
-
-⚠️ Disclaimer: हे फक्त technical analysis आहे. Investment before consult करा.
-        """.trimIndent()
-    }
-
-    private fun generateInvestorInfo(signal: String, confidence: Int): String {
-        return if (signal == "BUY") {
-            "बहुतांश institutional investors या level वर accumulation करताना दिसत आहेत. Retail investors मध्ये bullish sentiment $confidence% पर्यंत आहे."
-        } else {
-            "Institutional investors या level वर distribution करताना दिसत आहेत. Smart money exit होत आहे. Retail bearish sentiment $confidence% आहे."
-        }
     }
 }
