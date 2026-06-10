@@ -8,7 +8,6 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.tradinganalyzer.analysis.AnalysisResult
 import com.tradinganalyzer.analysis.ChartAnalyzer
 import com.tradinganalyzer.data.AppDatabase
 import com.tradinganalyzer.data.TradeRecord
@@ -116,31 +115,25 @@ class AnalysisActivity : AppCompatActivity() {
         binding.tvNotChartReason.text = reason
     }
 
-    private fun displayResult(result: AnalysisResult) {
+    private fun displayResult(result: com.tradinganalyzer.analysis.AnalysisResult) {
         binding.cardResult.visibility = View.VISIBLE
         binding.cardFeedback.visibility = View.VISIBLE
         binding.cardNotChart.visibility = View.GONE
 
-        // Signal
         binding.tvSignal.text = result.signal
         binding.tvSignal.setTextColor(
             if (result.signal == "BUY") Color.parseColor("#4CAF50")
             else Color.parseColor("#F44336")
         )
 
-        // Confidence
-        binding.tvConfidence.text = "Confidence: ${result.confidence}%"
+        binding.tvBuyChance.text = "BUY: ${String.format("%.1f", result.greenPercent)}%"
+        binding.tvSellChance.text = "SELL: ${String.format("%.1f", result.redPercent)}%"
+        binding.tvBuyChance.setTextColor(Color.parseColor("#4CAF50"))
+        binding.tvSellChance.setTextColor(Color.parseColor("#F44336"))
+
         binding.progressConfidence.progress = result.confidence
+        binding.tvConfidence.text = "Signal Strength: ${result.confidence}%"
 
-        // Wait message — show prominently if exists
-        if (result.waitMessage.isNotEmpty()) {
-            binding.tvWaitMessage.visibility = View.VISIBLE
-            binding.tvWaitMessage.text = result.waitMessage
-        } else {
-            binding.tvWaitMessage.visibility = View.GONE
-        }
-
-        // Risk level
         binding.tvRiskLevel.text = result.riskLevel
         try {
             binding.tvRiskLevel.setTextColor(Color.parseColor(result.riskColor))
@@ -148,20 +141,19 @@ class AnalysisActivity : AppCompatActivity() {
             binding.tvRiskLevel.setTextColor(Color.parseColor("#FF9800"))
         }
 
-        // RSI
-        binding.tvRsiInfo.text = "📊 ${result.rsiInfo}"
+        if (result.waitMessage.isNotEmpty()) {
+            binding.tvWaitMessage.visibility = View.VISIBLE
+            binding.tvWaitMessage.text = result.waitMessage
+        } else {
+            binding.tvWaitMessage.visibility = View.GONE
+        }
 
-        // Key factors
+        binding.tvRsiInfo.text = result.rsiInfo
         binding.tvKeyFactors.text = result.keyFactors
-
-        // Other fields
-        binding.tvCandleDirection.text = "📈 Candle Direction: ${result.trend}"
-        binding.tvGreenPercent.text = "🟢 Bullish Candles: ${String.format("%.1f", result.greenPercent)}%"
-        binding.tvRedPercent.text = "🔴 Bearish Candles: ${String.format("%.1f", result.redPercent)}%"
-        binding.tvVolumeInfo.text = "📊 Volume: ${result.volumeInfo}"
-        binding.tvSentiment.text = "💹 Sentiment: ${result.sentiment}"
-        binding.tvSupportResistance.text = "🎯 Key Levels:\n${result.supportResistance}"
-        binding.tvInvestorInfo.text = "👥 ${result.investorInfo}"
+        binding.tvSupportResistance.text = result.supportResistance
+        binding.tvVolumeInfo.text = "Volume: ${result.volumeInfo}"
+        binding.tvSentiment.text = "Sentiment: ${result.sentiment}"
+        binding.tvInvestorInfo.text = result.investorInfo
         binding.tvSummary.text = result.summary
     }
 
@@ -170,7 +162,7 @@ class AnalysisActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             AppDatabase.getInstance(applicationContext).tradeDao().updateFeedback(recordId, isCorrect)
             withContext(Dispatchers.Main) {
-                val msg = if (isCorrect) "✅ Marked as CORRECT!" else "❌ Marked as WRONG!"
+                val msg = if (isCorrect) "Correct marked!" else "Wrong marked!"
                 Toast.makeText(this@AnalysisActivity, msg, Toast.LENGTH_SHORT).show()
                 binding.cardFeedback.visibility = View.GONE
             }
