@@ -361,4 +361,6 @@ object PatternEngine {
             if (i < patterns.take(topN).size - 1) sb.appendLine("   ─────────────────────")
         }
         sb.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-     
+        return sb.toString()
+    }
+}
