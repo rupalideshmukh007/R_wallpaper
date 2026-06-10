@@ -15,10 +15,4 @@ interface TradeDao {
 
     @Query("UPDATE trade_records SET isCorrect = :isCorrect WHERE id = :id")
     suspend fun updateFeedback(id: Long, isCorrect: Boolean)
-
-    @Query("SELECT COUNT(*) FROM trade_records WHERE isCorrect = 1")
-    suspend fun getCorrectCount(): Int
-
-    @Query("SELECT COUNT(*) FROM trade_records WHERE isCorrect = 0")
-    suspend fun getWrongCount(): Int
 }
