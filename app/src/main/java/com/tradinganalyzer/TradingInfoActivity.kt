@@ -16,396 +16,276 @@ class TradingInfoActivity : AppCompatActivity() {
         supportActionBar?.title = "Trading Information"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        binding.tvTradingContent.text = getTradingInfo()
+        binding.tvTradingContent.text = buildTradingInfo()
     }
 
-    private fun getTradingInfo(): String {
-        return """
-📈 TRADING — संपूर्ण माहिती
-═══════════════════════════════════════
-
-🕯️ 1. CANDLESTICK म्हणजे काय?
-───────────────────────────────
-Candlestick हे chart वर एक candle सारखे दिसते.
-यात 4 गोष्टी असतात:
-• Open  — बाजार सुरू होण्याची किंमत
-• Close — बाजार बंद होण्याची किंमत
-• High  — सर्वात जास्त किंमत
-• Low   — सर्वात कमी किंमत
-
-🟢 GREEN CANDLE (Bullish):
-Close > Open = किंमत वाढली = BUY signal
-
-🔴 RED CANDLE (Bearish):
-Close < Open = किंमत घसरली = SELL signal
-
-═══════════════════════════════════════
-
-📊 2. RSI — Relative Strength Index
-───────────────────────────────
-RSI हे indicator 0 ते 100 च्या दरम्यान असतो.
-
-🔴 RSI 70+ = Overbought
-खूप जास्त खरेदी झाली आहे.
-किंमत खाली येण्याची शक्यता जास्त.
-नवीन BUY position टाळा.
-
-🟢 RSI 30- = Oversold
-खूप जास्त विक्री झाली आहे.
-किंमत वर जाण्याची शक्यता जास्त.
-BUY opportunity असू शकते.
-
-➡️ RSI 40-60 = Neutral
-कोणताही strong signal नाही.
-Wait करा.
-
-RSI + Candle pattern एकत्र वापरल्यास accuracy वाढते.
-
-═══════════════════════════════════════
-
-🎯 3. IMPORTANT CANDLESTICK PATTERNS
-───────────────────────────────
-
-DOJI:
-Open आणि Close जवळजवळ सारखे.
-Market indecision दाखवतो.
-Trend बदलण्याचा signal असू शकतो.
-
-HAMMER:
-लांब lower wick, छोटी body वर.
-Downtrend नंतर येतो.
-= Bullish reversal signal ✅
-
-SHOOTING STAR:
-लांब upper wick, छोटी body खाली.
-Uptrend नंतर येतो.
-= Bearish reversal signal ✅
-
-BULLISH ENGULFING:
-मोठी green candle, मागील red ला पूर्णपणे cover करते.
-= Strong BUY signal ✅
-
-BEARISH ENGULFING:
-मोठी red candle, मागील green ला cover करते.
-= Strong SELL signal ✅
-
-MORNING STAR:
-3 candles — Red, छोटी, Green.
-Downtrend नंतर येतो.
-= Strong BUY signal ✅
-
-EVENING STAR:
-3 candles — Green, छोटी, Red.
-Uptrend नंतर येतो.
-= Strong SELL signal ✅
-
-THREE WHITE SOLDIERS:
-3 लागोपाठ मोठ्या green candles.
-= Very Strong BUY ✅✅
-
-THREE BLACK CROWS:
-3 लागोपाठ मोठ्या red candles.
-= Very Strong SELL ✅✅
-
-═══════════════════════════════════════
-
-📉 4. SUPPORT & RESISTANCE
-───────────────────────────────
-Support: किंमत खाली येताना जिथे थांबते ती level.
-Resistance: किंमत वर जाताना जिथे थांबते ती level.
-
-Rules:
-✅ Support तोडले तर = SELL (Breakdown)
-✅ Resistance तोडले तर = BUY (Breakout)
-✅ Support जवळ BUY करा
-✅ Resistance जवळ SELL करा
-
-Support/Resistance कसे ओळखावे:
-• Chart वर किंमत वारंवार जिथे थांबते ती level
-• Round numbers (100, 500, 1000) = strong levels
-• Previous High/Low = important levels
-
-═══════════════════════════════════════
-
-📊 5. VOLUME ANALYSIS
-───────────────────────────────
-Volume = किती shares/contracts trade झाले
-
-High Volume + Green Candle = Strong BUY 🔥
-High Volume + Red Candle = Strong SELL 🔥
-Low Volume = Weak signal — विश्वास ठेवू नका ⚠️
-
-Volume Rules:
-• Breakout + High Volume = Confirm signal
-• Breakout + Low Volume = Fake breakout असू शकतो
-• Volume वाढत असेल तर trend strong आहे
-• Volume कमी होत असेल तर trend weak होत आहे
-
-═══════════════════════════════════════
-
-📈 6. MOVING AVERAGES (MA)
-───────────────────────────────
-Moving Average = किमतींची average line
-
-MA Types:
-• SMA 20 = 20 दिवसांची simple average
-• EMA 9/21 = Fast moving average
-• EMA 50/200 = Slow moving average
-
-Rules:
-✅ Price > MA 200 = Long-term Bullish
-✅ Price < MA 200 = Long-term Bearish
-✅ EMA 9 crosses EMA 21 वर = BUY
-✅ EMA 9 crosses EMA 21 खाली = SELL
-
-Golden Cross:
-MA 50 crosses MA 200 वर = Strong BUY signal
-
-Death Cross:
-MA 50 crosses MA 200 खाली = Strong SELL signal
-
-═══════════════════════════════════════
-
-⚡ 7. MACD Indicator
-───────────────────────────────
-MACD = Moving Average Convergence Divergence
-
-MACD Line वर Signal Line = BUY 📈
-MACD Line खाली Signal Line = SELL 📉
-
-Histogram:
-Positive (वर) = Bullish momentum
-Negative (खाली) = Bearish momentum
-
-MACD + RSI एकत्र = Best combination
-
-═══════════════════════════════════════
-
-📊 8. BOLLINGER BANDS
-───────────────────────────────
-3 lines — Upper, Middle (MA 20), Lower
-
-Rules:
-✅ Price touches Lower Band = Oversold = BUY
-✅ Price touches Upper Band = Overbought = SELL
-✅ Bands squeeze = Big move येणार आहे
-✅ Bands wide = High volatility
-
-Bollinger Squeeze:
-Bands अचानक narrow झाल्यावर मोठी move येते.
-Direction कळत नाही — दोन्ही बाजूंसाठी तयार राहा.
-
-═══════════════════════════════════════
-
-🎯 9. TREND ANALYSIS
-───────────────────────────────
-Uptrend:
-Higher Highs + Higher Lows
-= BUY the dips (घसरणीत खरेदी करा)
-
-Downtrend:
-Lower Highs + Lower Lows
-= SELL the rallies (वाढीत विक्री करा)
-
-Sideways:
-No clear direction
-= Wait करा, trade नको
-
-Trend Lines:
-Uptrend line तोडले = Trend बदलतोय
-Downtrend line तोडले = Reversal येतोय
-
-═══════════════════════════════════════
-
-💰 10. TIMEFRAMES
-───────────────────────────────
-1 Minute / 5 Minute:
-= Scalping (खूप short trades)
-= जास्त noise, experience लागतो
-
-15 Minute / 1 Hour:
-= Intraday trading साठी best
-= Clear signals मिळतात
-
-4 Hour / Daily:
-= Swing trading (2-5 दिवस)
-= Most reliable signals
-
-Weekly / Monthly:
-= Long-term investment
-= Strong trends दिसतात
-
-Rule: जास्त timeframe = जास्त reliable signal
-
-═══════════════════════════════════════
-
-🛡️ 11. RISK MANAGEMENT (सर्वात महत्त्वाचे!)
-───────────────────────────────
-
-Stop Loss:
-नेहमी stop loss लावा.
-Rule: एका trade मध्ये जास्तीत जास्त 1-2% capital risk.
-
-Position Sizing:
-एका trade मध्ये total capital चे जास्तीत जास्त 5%.
-Example: 1 lakh capital → एका trade मध्ये 5000 पेक्षा जास्त नको.
-
-Risk:Reward Ratio:
-कमीत कमी 1:2 असावे.
-म्हणजे 1000 risk → 2000 profit target.
-1:3 असेल तर आणखी चांगले.
-
-Diversification:
-सगळे पैसे एकाच stock मध्ये नको.
-3-5 different stocks मध्ये divide करा.
-
-═══════════════════════════════════════
-
-📱 12. INTRADAY TRADING RULES
-───────────────────────────────
-✅ सकाळी 9:30 नंतर trade सुरू करा
-   (Market opening volatility टाळा)
-✅ 3:00 च्या आधी सगळ्या positions close करा
-✅ News वेळी trade करू नका (Budget, RBI, Results)
-✅ दिवसाला जास्तीत जास्त 2-3 trades
-✅ Loss झाल्यावर revenge trade करू नका
-✅ Target hit झाल्यावर greed करू नका
-
-Best Intraday Stocks:
-• High volume असलेले stocks
-• F&O मध्ये असलेले stocks
-• Nifty 50 चे stocks
-
-═══════════════════════════════════════
-
-📊 13. OPTIONS TRADING BASICS
-───────────────────────────────
-Call Option (CE):
-Stock वर जाईल असे वाटते तेव्हा Call Buy करा.
-= Limited risk, unlimited profit
-
-Put Option (PE):
-Stock खाली जाईल असे वाटते तेव्हा Put Buy करा.
-= Limited risk, unlimited profit
-
-Option Selling:
-Call/Put विकणे = जास्त profit पण unlimited risk.
-Experience असल्याशिवाय करू नका.
-
-Important Terms:
-• Strike Price: ज्या किमतीवर option आहे
-• Expiry: Option संपण्याची तारीख
-• Premium: Option ची किंमत
-• ITM: In the Money (profitable)
-• OTM: Out of the Money (not profitable yet)
-• ATM: At the Money
-
-Theta Decay:
-Option चा premium रोज कमी होत जातो.
-= Option buyers साठी नुकसानदायक
-= Option sellers साठी फायदेशीर
-
-═══════════════════════════════════════
-
-🔍 14. CHART PATTERNS
-───────────────────────────────
-Head and Shoulders:
-= Bearish reversal pattern
-= Strong SELL signal
-
-Inverse Head and Shoulders:
-= Bullish reversal pattern
-= Strong BUY signal
-
-Double Top:
-किंमत दोनदा same level वर जाऊन परतली.
-= Bearish signal, SELL करा
-
-Double Bottom:
-किंमत दोनदा same level ला येऊन वर गेली.
-= Bullish signal, BUY करा
-
-Triangle Patterns:
-Ascending Triangle = BUY breakout
-Descending Triangle = SELL breakdown
-Symmetrical = Wait करा
-
-Cup and Handle:
-= Strong Bullish pattern
-= Breakout नंतर BUY करा
-
-Flag Pattern:
-Strong move नंतर consolidation, मग पुन्हा same direction.
-= Trend continuation pattern
-
-═══════════════════════════════════════
-
-💡 15. TRADING PSYCHOLOGY
-───────────────────────────────
-सर्वात मोठा शत्रू = स्वतःचे मन
-
-FOMO (Fear of Missing Out):
-Train निघून गेल्यावर मागे धावू नका.
-पुढची train येईल — wait करा.
-
-Greed:
-Target hit झाल्यावर बाहेर पडा.
-"आणखी थोडे" म्हणत राहू नका.
-
-Fear:
-Stop loss लावा आणि trust ठेवा.
-Loss चा fear असेल तर trade करू नका.
-
-Revenge Trading:
-Loss नंतर लगेच मोठा trade करू नका.
-Break घ्या, calm व्हा.
-
-Overtrading:
-जास्त trades = जास्त commission + जास्त mistakes.
-Quality > Quantity.
-
-Journal:
-प्रत्येक trade लिहा:
-Entry, Exit, Reason, Result.
-Pattern कळेल — mistakes कमी होतील.
-
-═══════════════════════════════════════
-
-📌 16. QUICK REFERENCE — SIGNALS SUMMARY
-───────────────────────────────
-Strong BUY:
-• Green candle + High volume
-• RSI 30 खाली (oversold)
-• Support वर bounce
-• Bullish Engulfing pattern
-• MACD crossover वर
-
-Strong SELL:
-• Red candle + High volume
-• RSI 70 वर (overbought)
-• Resistance वर rejection
-• Bearish Engulfing pattern
-• MACD crossover खाली
-
-Avoid Trading:
-• RSI 40-60 (neutral)
-• Sideways market
-• News वेळी
-• Low volume
-• Market opening 15 min
-
-═══════════════════════════════════════
-
-⚠️ IMPORTANT DISCLAIMER
-───────────────────────────────
-• Trading मध्ये risk असतो
-• Past performance future guarantee नाही
-• कधीही loan घेऊन trade करू नका
-• हे app educational purpose साठी आहे
-• Professional advisor consult करा
-
-🎯 सुरुवात कशी करावी?
-1. Paper trading ने 1 महिना practice करा
-2. छोट्या amount ने सुरुवात **...**
-
-_This response is too long to display in full._
+    private fun buildTradingInfo(): String {
+        val sb = StringBuilder()
+
+        sb.append("TRADING - संपूर्ण माहिती\n")
+        sb.append("===================================\n\n")
+
+        sb.append("1. CANDLESTICK म्हणजे काय?\n")
+        sb.append("-----------------------------------\n")
+        sb.append("Candlestick हे chart वर एक candle सारखे दिसते.\n")
+        sb.append("यात 4 गोष्टी असतात:\n")
+        sb.append("Open  - बाजार सुरू होण्याची किंमत\n")
+        sb.append("Close - बाजार बंद होण्याची किंमत\n")
+        sb.append("High  - सर्वात जास्त किंमत\n")
+        sb.append("Low   - सर्वात कमी किंमत\n\n")
+        sb.append("GREEN CANDLE (Bullish):\n")
+        sb.append("Close > Open = किंमत वाढली = BUY signal\n\n")
+        sb.append("RED CANDLE (Bearish):\n")
+        sb.append("Close < Open = किंमत घसरली = SELL signal\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("2. RSI - Relative Strength Index\n")
+        sb.append("-----------------------------------\n")
+        sb.append("RSI हे indicator 0 ते 100 च्या दरम्यान असतो.\n\n")
+        sb.append("RSI 70+ = Overbought\n")
+        sb.append("खूप जास्त खरेदी झाली आहे.\n")
+        sb.append("किंमत खाली येण्याची शक्यता जास्त.\n")
+        sb.append("नवीन BUY position टाळा.\n\n")
+        sb.append("RSI 30- = Oversold\n")
+        sb.append("खूप जास्त विक्री झाली आहे.\n")
+        sb.append("किंमत वर जाण्याची शक्यता जास्त.\n")
+        sb.append("BUY opportunity असू शकते.\n\n")
+        sb.append("RSI 40-60 = Neutral\n")
+        sb.append("कोणताही strong signal नाही. Wait करा.\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("3. IMPORTANT CANDLESTICK PATTERNS\n")
+        sb.append("-----------------------------------\n")
+        sb.append("DOJI:\n")
+        sb.append("Open आणि Close जवळजवळ सारखे.\n")
+        sb.append("Market indecision दाखवतो.\n\n")
+        sb.append("HAMMER:\n")
+        sb.append("लांब lower wick, छोटी body वर.\n")
+        sb.append("Downtrend नंतर येतो = Bullish reversal\n\n")
+        sb.append("SHOOTING STAR:\n")
+        sb.append("लांब upper wick, छोटी body खाली.\n")
+        sb.append("Uptrend नंतर येतो = Bearish reversal\n\n")
+        sb.append("BULLISH ENGULFING:\n")
+        sb.append("मोठी green candle मागील red ला cover करते.\n")
+        sb.append("= Strong BUY signal\n\n")
+        sb.append("BEARISH ENGULFING:\n")
+        sb.append("मोठी red candle मागील green ला cover करते.\n")
+        sb.append("= Strong SELL signal\n\n")
+        sb.append("MORNING STAR:\n")
+        sb.append("3 candles - Red, छोटी, Green.\n")
+        sb.append("Downtrend नंतर येतो = Strong BUY\n\n")
+        sb.append("EVENING STAR:\n")
+        sb.append("3 candles - Green, छोटी, Red.\n")
+        sb.append("Uptrend नंतर येतो = Strong SELL\n\n")
+        sb.append("THREE WHITE SOLDIERS:\n")
+        sb.append("3 लागोपाठ मोठ्या green candles.\n")
+        sb.append("= Very Strong BUY\n\n")
+        sb.append("THREE BLACK CROWS:\n")
+        sb.append("3 लागोपाठ मोठ्या red candles.\n")
+        sb.append("= Very Strong SELL\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("4. SUPPORT & RESISTANCE\n")
+        sb.append("-----------------------------------\n")
+        sb.append("Support: किंमत खाली येताना जिथे थांबते.\n")
+        sb.append("Resistance: किंमत वर जाताना जिथे थांबते.\n\n")
+        sb.append("Support तोडले तर = SELL (Breakdown)\n")
+        sb.append("Resistance तोडले तर = BUY (Breakout)\n")
+        sb.append("Support जवळ BUY करा\n")
+        sb.append("Resistance जवळ SELL करा\n\n")
+        sb.append("Support/Resistance कसे ओळखावे:\n")
+        sb.append("- Chart वर किंमत वारंवार जिथे थांबते\n")
+        sb.append("- Round numbers (100, 500, 1000)\n")
+        sb.append("- Previous High/Low = important levels\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("5. VOLUME ANALYSIS\n")
+        sb.append("-----------------------------------\n")
+        sb.append("Volume = किती shares trade झाले\n\n")
+        sb.append("High Volume + Green Candle = Strong BUY\n")
+        sb.append("High Volume + Red Candle = Strong SELL\n")
+        sb.append("Low Volume = Weak signal - विश्वास नको\n\n")
+        sb.append("Breakout + High Volume = Confirm signal\n")
+        sb.append("Breakout + Low Volume = Fake breakout\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("6. MOVING AVERAGES (MA)\n")
+        sb.append("-----------------------------------\n")
+        sb.append("Moving Average = किमतींची average line\n\n")
+        sb.append("SMA 20 = 20 दिवसांची simple average\n")
+        sb.append("EMA 9/21 = Fast moving average\n")
+        sb.append("EMA 50/200 = Slow moving average\n\n")
+        sb.append("Price > MA 200 = Long-term Bullish\n")
+        sb.append("Price < MA 200 = Long-term Bearish\n")
+        sb.append("EMA 9 crosses EMA 21 वर = BUY\n")
+        sb.append("EMA 9 crosses EMA 21 खाली = SELL\n\n")
+        sb.append("Golden Cross:\n")
+        sb.append("MA 50 crosses MA 200 वर = Strong BUY\n\n")
+        sb.append("Death Cross:\n")
+        sb.append("MA 50 crosses MA 200 खाली = Strong SELL\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("7. MACD Indicator\n")
+        sb.append("-----------------------------------\n")
+        sb.append("MACD Line वर Signal Line = BUY\n")
+        sb.append("MACD Line खाली Signal Line = SELL\n\n")
+        sb.append("Histogram Positive = Bullish momentum\n")
+        sb.append("Histogram Negative = Bearish momentum\n\n")
+        sb.append("MACD + RSI एकत्र = Best combination\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("8. BOLLINGER BANDS\n")
+        sb.append("-----------------------------------\n")
+        sb.append("3 lines - Upper, Middle (MA 20), Lower\n\n")
+        sb.append("Price touches Lower Band = Oversold = BUY\n")
+        sb.append("Price touches Upper Band = Overbought = SELL\n")
+        sb.append("Bands squeeze = Big move येणार आहे\n")
+        sb.append("Bands wide = High volatility\n\n")
+        sb.append("Bollinger Squeeze:\n")
+        sb.append("Bands narrow झाल्यावर मोठी move येते.\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("9. TREND ANALYSIS\n")
+        sb.append("-----------------------------------\n")
+        sb.append("Uptrend:\n")
+        sb.append("Higher Highs + Higher Lows\n")
+        sb.append("= BUY the dips\n\n")
+        sb.append("Downtrend:\n")
+        sb.append("Lower Highs + Lower Lows\n")
+        sb.append("= SELL the rallies\n\n")
+        sb.append("Sideways:\n")
+        sb.append("No clear direction = Wait करा\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("10. TIMEFRAMES\n")
+        sb.append("-----------------------------------\n")
+        sb.append("1 Min / 5 Min = Scalping (खूप short)\n")
+        sb.append("15 Min / 1 Hour = Intraday best\n")
+        sb.append("4 Hour / Daily = Swing trading\n")
+        sb.append("Weekly / Monthly = Long-term\n\n")
+        sb.append("Rule: जास्त timeframe = जास्त reliable\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("11. RISK MANAGEMENT (सर्वात महत्त्वाचे!)\n")
+        sb.append("-----------------------------------\n")
+        sb.append("Stop Loss:\n")
+        sb.append("नेहमी stop loss लावा.\n")
+        sb.append("एका trade मध्ये जास्तीत जास्त 1-2% capital risk.\n\n")
+        sb.append("Position Sizing:\n")
+        sb.append("एका trade मध्ये total capital चे 5% जास्त नको.\n")
+        sb.append("1 lakh capital = 5000 पेक्षा जास्त risk नको.\n\n")
+        sb.append("Risk:Reward Ratio:\n")
+        sb.append("कमीत कमी 1:2 असावे.\n")
+        sb.append("1000 risk करायचे तर 2000 profit target.\n\n")
+        sb.append("Diversification:\n")
+        sb.append("सगळे पैसे एकाच stock मध्ये नको.\n")
+        sb.append("3-5 different stocks मध्ये divide करा.\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("12. INTRADAY TRADING RULES\n")
+        sb.append("-----------------------------------\n")
+        sb.append("सकाळी 9:30 नंतर trade सुरू करा\n")
+        sb.append("3:00 च्या आधी सगळ्या positions close करा\n")
+        sb.append("News वेळी trade करू नका\n")
+        sb.append("दिवसाला जास्तीत जास्त 2-3 trades\n")
+        sb.append("Loss झाल्यावर revenge trade करू नका\n")
+        sb.append("Target hit झाल्यावर greed करू नका\n\n")
+        sb.append("Best Intraday Stocks:\n")
+        sb.append("- High volume असलेले stocks\n")
+        sb.append("- F&O मध्ये असलेले stocks\n")
+        sb.append("- Nifty 50 चे stocks\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("13. OPTIONS TRADING BASICS\n")
+        sb.append("-----------------------------------\n")
+        sb.append("Call Option (CE):\n")
+        sb.append("Stock वर जाईल असे वाटते तेव्हा Call Buy करा.\n")
+        sb.append("Limited risk, unlimited profit\n\n")
+        sb.append("Put Option (PE):\n")
+        sb.append("Stock खाली जाईल असे वाटते तेव्हा Put Buy करा.\n")
+        sb.append("Limited risk, unlimited profit\n\n")
+        sb.append("Important Terms:\n")
+        sb.append("Strike Price: ज्या किमतीवर option आहे\n")
+        sb.append("Expiry: Option संपण्याची तारीख\n")
+        sb.append("Premium: Option ची किंमत\n")
+        sb.append("ITM: In the Money (profitable)\n")
+        sb.append("OTM: Out of the Money\n")
+        sb.append("ATM: At the Money\n\n")
+        sb.append("Theta Decay:\n")
+        sb.append("Option चा premium रोज कमी होतो.\n")
+        sb.append("Option buyers साठी नुकसानदायक.\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("14. CHART PATTERNS\n")
+        sb.append("-----------------------------------\n")
+        sb.append("Head and Shoulders = Bearish reversal\n")
+        sb.append("Inverse H&S = Bullish reversal\n\n")
+        sb.append("Double Top:\n")
+        sb.append("किंमत दोनदा same level वर जाऊन परतली.\n")
+        sb.append("= Bearish signal, SELL करा\n\n")
+        sb.append("Double Bottom:\n")
+        sb.append("किंमत दोनदा same level ला येऊन वर गेली.\n")
+        sb.append("= Bullish signal, BUY करा\n\n")
+        sb.append("Triangle Patterns:\n")
+        sb.append("Ascending Triangle = BUY breakout\n")
+        sb.append("Descending Triangle = SELL breakdown\n")
+        sb.append("Symmetrical = Wait करा\n\n")
+        sb.append("Cup and Handle = Strong Bullish pattern\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("15. TRADING PSYCHOLOGY\n")
+        sb.append("-----------------------------------\n")
+        sb.append("FOMO:\n")
+        sb.append("Train निघून गेल्यावर मागे धावू नका.\n")
+        sb.append("पुढची train येईल - wait करा.\n\n")
+        sb.append("Greed:\n")
+        sb.append("Target hit झाल्यावर बाहेर पडा.\n\n")
+        sb.append("Fear:\n")
+        sb.append("Stop loss लावा आणि trust ठेवा.\n\n")
+        sb.append("Revenge Trading:\n")
+        sb.append("Loss नंतर लगेच मोठा trade करू नका.\n\n")
+        sb.append("Journal:\n")
+        sb.append("प्रत्येक trade लिहा: Entry, Exit, Reason, Result.\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("16. QUICK SIGNALS SUMMARY\n")
+        sb.append("-----------------------------------\n")
+        sb.append("Strong BUY:\n")
+        sb.append("Green candle + High volume\n")
+        sb.append("RSI 30 खाली (oversold)\n")
+        sb.append("Support वर bounce\n")
+        sb.append("Bullish Engulfing pattern\n\n")
+        sb.append("Strong SELL:\n")
+        sb.append("Red candle + High volume\n")
+        sb.append("RSI 70 वर (overbought)\n")
+        sb.append("Resistance वर rejection\n")
+        sb.append("Bearish Engulfing pattern\n\n")
+        sb.append("Avoid Trading:\n")
+        sb.append("RSI 40-60 (neutral zone)\n")
+        sb.append("Sideways market\n")
+        sb.append("News वेळी\n")
+        sb.append("Low volume\n\n")
+
+        sb.append("===================================\n\n")
+        sb.append("IMPORTANT DISCLAIMER\n")
+        sb.append("-----------------------------------\n")
+        sb.append("Trading मध्ये risk असतो.\n")
+        sb.append("Past performance future guarantee नाही.\n")
+        sb.append("कधीही loan घेऊन trade करू नका.\n")
+        sb.append("हे app educational purpose साठी आहे.\n")
+        sb.append("Professional advisor consult करा.\n\n")
+        sb.append("सुरुवात कशी करावी?\n")
+        sb.append("1. Paper trading ने 1 महिना practice करा\n")
+        sb.append("2. छोट्या amount ने सुरुवात करा (5000-10000)\n")
+        sb.append("3. एकाच stock वर focus करा सुरुवातीला\n")
+        sb.append("4. Daily journal ठेवा\n")
+        sb.append("5. Slowly experience वाढवा\n")
+
+        return sb.toString()
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        onBackPressedDispatcher.onBackPressed()
+        return true
+    }
+}
