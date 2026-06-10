@@ -60,19 +60,32 @@ class AnalysisActivity : AppCompatActivity() {
                 }
                 if (bitmap == null) {
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@AnalysisActivity, "Image load failed", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this@AnalysisActivity,
+                            "Image load failed",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                     return@launch
                 }
-                val result = withContext(Dispatchers.Default) { ChartAnalyzer.analyze(bitmap) }
-                withContext(Dispatchers.Main) {
-                    if (result.isValidChart) displayResult(result) else showError(result.notChartReason)
+
+                val result = withContext(Dispatchers.Default) {
+                    ChartAnalyzer.analyze(bitmap)
                 }
+
+                withContext(Dispatchers.Main) {
+                    if (result.isValidChart) displayResult(result)
+                    else showError(result.notChartReason)
+                }
+
                 if (result.isValidChart) {
                     recordId = withContext(Dispatchers.IO) {
                         AppDatabase.getInstance(applicationContext).tradeDao().insert(
                             TradeRecord(
-                                date         = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date()),
+                                date         = SimpleDateFormat(
+                                    "dd/MM/yyyy HH:mm",
+                                    Locale.getDefault()
+                                ).format(Date()),
                                 signal       = result.signal,
                                 confidence   = result.confidence,
                                 greenPercent = result.greenPercent,
@@ -83,12 +96,19 @@ class AnalysisActivity : AppCompatActivity() {
                         )
                     }
                 }
+
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@AnalysisActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@AnalysisActivity,
+                        "Error: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             } finally {
-                withContext(Dispatchers.Main) { binding.progressBar.visibility = View.GONE }
+                withContext(Dispatchers.Main) {
+                    binding.progressBar.visibility = View.GONE
+                }
             }
         }
     }
@@ -105,47 +125,73 @@ class AnalysisActivity : AppCompatActivity() {
         binding.cardFeedback.visibility = View.VISIBLE
         binding.cardNotChart.visibility = View.GONE
 
+        // ── BUY / SELL signal ─────────────────────────────────────
         binding.tvSignal.text = r.signal
         binding.tvSignal.setTextColor(
-            if (r.signal == "BUY") Color.parseColor("#4CAF50") else Color.parseColor("#F44336")
+            if (r.signal == "BUY") Color.parseColor("#4CAF50")
+            else                   Color.parseColor("#F44336")
         )
 
+        // ── Green / Red percentages ───────────────────────────────
         binding.tvBuyChance.text  = "BUY\n${String.format("%.1f", r.greenPercent)}%"
         binding.tvSellChance.text = "SELL\n${String.format("%.1f", r.redPercent)}%"
         binding.tvBuyChance.setTextColor(Color.parseColor("#4CAF50"))
         binding.tvSellChance.setTextColor(Color.parseColor("#F44336"))
 
+        // ── Confidence bar ────────────────────────────────────────
         binding.progressConfidence.progress = r.confidence
         binding.tvConfidence.text = "Signal Strength: ${r.confidence}%"
 
+        // ── Risk level ────────────────────────────────────────────
         binding.tvRiskLevel.text = r.riskLevel
-        try { binding.tvRiskLevel.setTextColor(Color.parseColor(r.riskColor)) }
-        catch (e: Exception) { binding.tvRiskLevel.setTextColor(Color.parseColor("#FF9800")) }
+        try {
+            binding.tvRiskLevel.setTextColor(Color.parseColor(r.riskColor))
+        } catch (e: Exception) {
+            binding.tvRiskLevel.setTextColor(Color.parseColor("#FF9800"))
+        }
 
+        // ── Wait message ──────────────────────────────────────────
         if (r.waitMessage.isNotEmpty()) {
             binding.tvWaitMessage.visibility = View.VISIBLE
-            binding.tvWaitMessage.text = r.waitMessage
+            binding.tvWaitMessage.text       = r.waitMessage
         } else {
             binding.tvWaitMessage.visibility = View.GONE
         }
 
+        // ── Signal reason (pixel analysis key factors) ────────────
         if (r.keyFactors.isNotEmpty()) {
             binding.tvSignalReason.visibility = View.VISIBLE
-            binding.tvSignalReason.text = "Reason: ${r.keyFactors}"
+            binding.tvSignalReason.text       = "📌 Reason: ${r.keyFactors}"
         } else {
             binding.tvSignalReason.visibility = View.GONE
         }
 
-        binding.tvSummary.text = r.supportResistance
+        // ── Entry / SL / Target  +  Pattern Engine output ─────────
+        val fullSummary = buildString {
+            append(r.supportResistance)
+            appendLine()
+            appendLine()
+            if (r.detectedPatterns.isNotEmpty()) {
+                append(r.patternDisplay)
+            } else {
+                append("🔍 Chart pattern detect झाला नाही.\nCandlestick chart upload करा.")
+            }
+        }
+        binding.tvSummary.text = fullSummary
     }
 
     private fun saveFeedback(isCorrect: Boolean) {
         if (recordId == -1L) return
         lifecycleScope.launch(Dispatchers.IO) {
-            AppDatabase.getInstance(applicationContext).tradeDao().updateFeedback(recordId, isCorrect)
+            AppDatabase.getInstance(applicationContext)
+                .tradeDao()
+                .updateFeedback(recordId, isCorrect)
             withContext(Dispatchers.Main) {
-                Toast.makeText(this@AnalysisActivity,
-                    if (isCorrect) "Correct marked!" else "Wrong marked!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@AnalysisActivity,
+                    if (isCorrect) "Correct marked!" else "Wrong marked!",
+                    Toast.LENGTH_SHORT
+                ).show()
                 binding.cardFeedback.visibility = View.GONE
             }
         }
