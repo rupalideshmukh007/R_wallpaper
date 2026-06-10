@@ -27,11 +27,10 @@ class HistoryAdapter(private val records: List<TradeRecord>) :
             tvConfidence.text = "Confidence: ${record.confidence}%"
             tvTrend.text = record.trend
 
-            if (record.signal == "BUY") {
-                tvSignal.setTextColor(Color.parseColor("#4CAF50"))
-            } else {
-                tvSignal.setTextColor(Color.parseColor("#F44336"))
-            }
+            tvSignal.setTextColor(
+                if (record.signal == "BUY") Color.parseColor("#4CAF50")
+                else Color.parseColor("#F44336")
+            )
 
             tvFeedback.text = when (record.isCorrect) {
                 true -> "✅ Correct"
