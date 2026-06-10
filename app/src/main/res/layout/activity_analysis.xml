@@ -32,13 +32,11 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:visibility="gone">
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="20dp">
-
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -47,7 +45,6 @@
                     android:textStyle="bold"
                     android:textColor="#F44336"
                     android:layout_marginBottom="12dp" />
-
                 <TextView
                     android:id="@+id/tvNotChartReason"
                     android:layout_width="match_parent"
@@ -55,17 +52,6 @@
                     android:textSize="15sp"
                     android:lineSpacingExtra="4dp"
                     android:text="" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Chart कसा upload करावा:\n1. TradingView / Zerodha / Upstox app उघडा\n2. Chart चा screenshot घ्या\n3. तो screenshot इथे upload करा"
-                    android:textSize="13sp"
-                    android:textColor="#757575"
-                    android:background="#F5F5F5"
-                    android:padding="12dp"
-                    android:layout_marginTop="12dp" />
-
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -86,17 +72,51 @@
                     android:id="@+id/tvSignal"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="42sp"
+                    android:textSize="48sp"
                     android:textStyle="bold"
                     android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="8dp"
-                    android:text="BUY" />
+                    android:layout_marginBottom="12dp"
+                    android:text="" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:id="@+id/tvBuyChance"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:background="#E8F5E9"
+                        android:padding="12dp"
+                        android:layout_marginEnd="4dp"
+                        android:text="" />
+
+                    <TextView
+                        android:id="@+id/tvSellChance"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:background="#FFEBEE"
+                        android:padding="12dp"
+                        android:layout_marginStart="4dp"
+                        android:text="" />
+
+                </LinearLayout>
 
                 <ProgressBar
                     android:id="@+id/progressConfidence"
                     style="@android:style/Widget.ProgressBar.Horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="14dp"
+                    android:layout_height="12dp"
                     android:max="100"
                     android:layout_marginBottom="4dp" />
 
@@ -104,24 +124,22 @@
                     android:id="@+id/tvConfidence"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:layout_gravity="center_horizontal"
                     android:layout_marginBottom="12dp"
                     android:text="" />
 
-                <!-- Risk Level -->
                 <TextView
                     android:id="@+id/tvRiskLevel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="15sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:background="#F5F5F5"
                     android:padding="10dp"
-                    android:layout_marginBottom="10dp"
+                    android:layout_marginBottom="8dp"
                     android:text="" />
 
-                <!-- Wait Message -->
                 <TextView
                     android:id="@+id/tvWaitMessage"
                     android:layout_width="match_parent"
@@ -130,85 +148,61 @@
                     android:textColor="#E65100"
                     android:background="#FFF3E0"
                     android:padding="10dp"
-                    android:layout_marginBottom="10dp"
+                    android:layout_marginBottom="8dp"
                     android:visibility="gone"
                     android:text="" />
 
-                <!-- RSI -->
-                <TextView
-                    android:id="@+id/tvRsiInfo"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="14sp"
-                    android:background="#E8F5E9"
-                    android:padding="10dp"
-                    android:layout_marginBottom="10dp"
-                    android:text="" />
-
-                <!-- Key Factors -->
                 <TextView
                     android:id="@+id/tvKeyFactors"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:background="#E3F2FD"
                     android:padding="10dp"
-                    android:layout_marginBottom="10dp"
+                    android:layout_marginBottom="8dp"
                     android:text="" />
 
                 <TextView
-                    android:id="@+id/tvCandleDirection"
+                    android:id="@+id/tvRsiInfo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="15sp"
-                    android:layout_marginBottom="6dp"
-                    android:text="" />
-
-                <TextView
-                    android:id="@+id/tvGreenPercent"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="15sp"
-                    android:layout_marginBottom="4dp"
-                    android:text="" />
-
-                <TextView
-                    android:id="@+id/tvRedPercent"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="15sp"
-                    android:layout_marginBottom="6dp"
-                    android:text="" />
-
-                <TextView
-                    android:id="@+id/tvVolumeInfo"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="15sp"
-                    android:layout_marginBottom="6dp"
-                    android:text="" />
-
-                <TextView
-                    android:id="@+id/tvSentiment"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="15sp"
-                    android:layout_marginBottom="6dp"
+                    android:textSize="13sp"
+                    android:background="#E8F5E9"
+                    android:padding="10dp"
+                    android:layout_marginBottom="8dp"
                     android:text="" />
 
                 <TextView
                     android:id="@+id/tvSupportResistance"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:textSize="13sp"
+                    android:background="#F3E5F5"
+                    android:padding="10dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="" />
+
+                <TextView
+                    android:id="@+id/tvVolumeInfo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                     android:textSize="14sp"
-                    android:layout_marginBottom="6dp"
+                    android:layout_marginBottom="4dp"
+                    android:text="" />
+
+                <TextView
+                    android:id="@+id/tvSentiment"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="4dp"
                     android:text="" />
 
                 <TextView
                     android:id="@+id/tvInvestorInfo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textColor="#757575"
                     android:layout_marginBottom="8dp"
                     android:text="" />
@@ -230,27 +224,23 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:visibility="gone">
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="16dp">
-
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Analysis बरोबर होती का?\n(हे mark केल्याने तुमची accuracy track होते)"
+                    android:text="Analysis बरोबर होती का?"
                     android:textSize="15sp"
                     android:textStyle="bold"
                     android:gravity="center"
                     android:layout_marginBottom="12dp" />
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
-
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRight"
                         android:layout_width="0dp"
@@ -259,7 +249,6 @@
                         android:text="Correct"
                         android:layout_marginEnd="8dp"
                         style="@style/Widget.Material3.Button" />
-
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnWrong"
                         android:layout_width="0dp"
@@ -268,7 +257,6 @@
                         android:text="Wrong"
                         android:layout_marginStart="8dp"
                         style="@style/Widget.Material3.Button.OutlinedButton" />
-
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
