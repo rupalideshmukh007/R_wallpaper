@@ -22,7 +22,9 @@ data class AnalysisResult(
     val riskColor: String = "",
     val waitMessage: String = "",
     val keyFactors: String = "",
-    val signalReason: String = ""
+    val signalReason: String = "",
+    val detectedPatterns: List<PatternResult> = emptyList(),
+    val patternDisplay: String = ""
 )
 
 object ChartAnalyzer {
@@ -63,14 +65,18 @@ object ChartAnalyzer {
                         greenPixels++
                         if (y < h/2) topGreen++ else bottomGreen++
                         when { x < w/3 -> leftGreen++; x < w*2/3 -> midGreen++; else -> rightGreen++ }
-                        if (y < h/2 && x < w/2) tlGreen++ else if (y < h/2) trGreen++
-                        else if (x < w/2) blGreen++ else brGreen++
+                        if      (y < h/2 && x < w/2) tlGreen++
+                        else if (y < h/2)             trGreen++
+                        else if (x < w/2)             blGreen++
+                        else                          brGreen++
                     } else if (isR) {
                         redPixels++
                         if (y < h/2) topRed++ else bottomRed++
                         when { x < w/3 -> leftRed++; x < w*2/3 -> midRed++; else -> rightRed++ }
-                        if (y < h/2 && x < w/2) tlRed++ else if (y < h/2) trRed++
-                        else if (x < w/2) blRed++ else brRed++
+                        if      (y < h/2 && x < w/2) tlRed++
+                        else if (y < h/2)             trRed++
+                        else if (x < w/2)             blRed++
+                        else                          brRed++
                     }
                 }
             }
@@ -83,7 +89,7 @@ object ChartAnalyzer {
         if (skinPixels.toFloat() / analyzable > 0.15f) return AnalysisResult(isValidChart = false,
             notChartReason = "❌ हे Chart नाही!\n\nSelfie किंवा photo दिसत आहे.\nकृपया Zerodha, Upstox, TradingView chart चा screenshot upload करा.")
         val coloredPixels = greenPixels + redPixels
-        val colorRatio = coloredPixels.toFloat() / analyzable
+        val colorRatio    = coloredPixels.toFloat() / analyzable
         if (colorRatio < 0.03f) return AnalysisResult(isValidChart = false,
             notChartReason = "❌ Chart patterns सापडले नाहीत!\nGreen/Red candles असलेला Candlestick chart upload करा.")
 
@@ -91,41 +97,45 @@ object ChartAnalyzer {
         val rp   = if (coloredPixels > 0) redPixels.toFloat()   / coloredPixels * 100f else 50f
         val diff = Math.abs(gp - rp)
 
-        // ── SCORING SYSTEM ─────────────────────────────────────────
-        // सगळ्या patterns + indicators वापरून score काढतो
-        // Positive score = BUY strength, Negative = SELL strength
+        val pixelData = PixelData(
+            greenPixels = greenPixels, redPixels = redPixels, gp = gp, rp = rp,
+            topGreen = topGreen, topRed = topRed, bottomGreen = bottomGreen, bottomRed = bottomRed,
+            leftGreen = leftGreen, leftRed = leftRed, midGreen = midGreen, midRed = midRed,
+            rightGreen = rightGreen, rightRed = rightRed,
+            tlGreen = tlGreen, tlRed = tlRed, trGreen = trGreen, trRed = trRed,
+            blGreen = blGreen, blRed = blRed, brGreen = brGreen, brRed = brRed,
+            colorRatio = colorRatio
+        )
 
-        var buyScore  = 0
-        var sellScore = 0
+        val detectedPatterns = PatternEngine.detect(pixelData)
+        val (patternBuyBonus, patternSellBonus) = PatternEngine.mergedBonus(detectedPatterns)
+
+        var buyScore  = 0; var sellScore = 0
         val reasons   = mutableListOf<String>()
 
-        // 1. BASE: Green vs Red pixels
         if (gp > rp) { buyScore  += diff.toInt().coerceIn(1, 30); reasons.add("Bullish candles जास्त") }
         else         { sellScore += diff.toInt().coerceIn(1, 30); reasons.add("Bearish candles जास्त") }
 
-        // 2. TREND (top vs bottom comparison)
-        val trendBull = topGreen > topRed && bottomGreen > bottomRed
-        val trendBear = topRed > topGreen && bottomRed > bottomGreen
-        val reversal  = topGreen > topRed && bottomRed > bottomGreen
+        val trendBull = topGreen > topRed  && bottomGreen > bottomRed
+        val trendBear = topRed   > topGreen && bottomRed  > bottomGreen
+        val reversal  = topGreen > topRed  && bottomRed   > bottomGreen
         val sideways  = !trendBull && !trendBear && !reversal
-        if (trendBull)  { buyScore  += 15; reasons.add("Uptrend") }
-        if (trendBear)  { sellScore += 15; reasons.add("Downtrend") }
-        if (reversal)   { sellScore += 8;  reasons.add("Reversal — trend बदलतोय") }
+        if (trendBull) { buyScore  += 15; reasons.add("Uptrend") }
+        if (trendBear) { sellScore += 15; reasons.add("Downtrend") }
+        if (reversal)  { sellScore += 8;  reasons.add("Reversal — trend बदलतोय") }
 
-        // 3. CANDLE PATTERN (internal detection)
-        val isDoji           = diff < 6f
-        val isHammer         = topRed > topGreen * 1.4 && bottomGreen > bottomRed * 1.4
-        val isShootingStar   = topGreen > bottomGreen * 1.5 && topRed < topGreen
-        val isBullEngulf     = gp > 65f && diff > 20f
-        val isBearEngulf     = rp > 65f && diff > 20f
-        val isMorningStar    = topRed > topGreen && midGreen > midRed && bottomGreen > bottomRed
-        val isEveningStar    = topGreen > topRed && midRed > midGreen && bottomRed > bottomGreen
-        val isThreeWhite     = leftGreen > leftRed && midGreen > midRed && rightGreen > rightRed && gp > 65f
-        val isThreeCrows     = leftRed > leftGreen && midRed > midGreen && rightRed > rightGreen && rp > 65f
+        val isDoji         = diff < 6f
+        val isHammer       = topRed > topGreen * 1.4 && bottomGreen > bottomRed * 1.4
+        val isShootingStar = topGreen > bottomGreen * 1.5 && topRed < topGreen
+        val isBullEngulf   = gp > 65f && diff > 20f
+        val isBearEngulf   = rp > 65f && diff > 20f
+        val isMorningStar  = topRed  > topGreen && midGreen > midRed && bottomGreen > bottomRed
+        val isEveningStar  = topGreen > topRed  && midRed > midGreen && bottomRed > bottomGreen
+        val isThreeWhite   = leftGreen > leftRed && midGreen > midRed && rightGreen > rightRed && gp > 65f
+        val isThreeCrows   = leftRed > leftGreen && midRed > midGreen && rightRed > rightGreen && rp > 65f
 
         when {
-            isDoji         -> { /* neutral — no score adjustment */
-                                reasons.add("Doji — Market uncertain") }
+            isDoji         -> reasons.add("Doji — Market uncertain")
             isThreeWhite   -> { buyScore  += 25; reasons.add("Three White Soldiers — Strong BUY") }
             isThreeCrows   -> { sellScore += 25; reasons.add("Three Black Crows — Strong SELL") }
             isMorningStar  -> { buyScore  += 20; reasons.add("Morning Star — Bullish reversal") }
@@ -136,7 +146,6 @@ object ChartAnalyzer {
             isShootingStar -> { sellScore += 12; reasons.add("Shooting Star — Bearish reversal signal") }
         }
 
-        // 4. CHART PATTERN
         val leftTotal  = (leftGreen + leftRed).coerceAtLeast(1)
         val rightTotal = (rightGreen + rightRed).coerceAtLeast(1)
         val lRatio     = leftGreen.toFloat() / leftTotal
@@ -158,7 +167,6 @@ object ChartAnalyzer {
             }
         }
 
-        // 5. VOLUME
         val highVolume = colorRatio > 0.12f
         val lowVolume  = colorRatio < 0.05f
         if (highVolume) {
@@ -171,7 +179,6 @@ object ChartAnalyzer {
             reasons.add("Low Volume — Signal weak")
         }
 
-        // 6. RSI
         val rsiValue = when {
             gp > 75 -> (70 + ((gp - 75) / 25 * 20)).toInt().coerceIn(70, 90)
             gp < 25 -> (30 - ((25 - gp) / 25 * 20)).toInt().coerceIn(10, 30)
@@ -180,99 +187,78 @@ object ChartAnalyzer {
         when {
             rsiValue >= 75 -> { sellScore += 12; reasons.add("RSI $rsiValue — Overbought") }
             rsiValue <= 25 -> { buyScore  += 12; reasons.add("RSI $rsiValue — Oversold") }
-            rsiValue >= 65 -> { buyScore  += 5 }
-            rsiValue <= 35 -> { sellScore += 5 }
+            rsiValue >= 65 -> buyScore  += 5
+            rsiValue <= 35 -> sellScore += 5
         }
 
-        // 7. SUPPORT / RESISTANCE
         if (bottomGreen > bottomRed * 1.3) { buyScore  += 8; reasons.add("Strong Support") }
-        if (topRed > topGreen * 1.3)       { sellScore += 8; reasons.add("Strong Resistance") }
+        if (topRed      > topGreen  * 1.3) { sellScore += 8; reasons.add("Strong Resistance") }
 
-        // 8. BREAKOUT / BREAKDOWN
         if (highVolume && diff > 20) {
             if (gp > rp) { buyScore  += 12; reasons.add("Breakout — High volume + Bullish move") }
             else         { sellScore += 12; reasons.add("Breakdown — High volume + Bearish move") }
         }
 
-        // ── FINAL SIGNAL ───────────────────────────────────────────
-        val totalScore   = (buyScore + sellScore).coerceAtLeast(1)
-        val signal       = if (buyScore >= sellScore) "BUY" else "SELL"
-        val winScore     = if (signal == "BUY") buyScore else sellScore
-        val rawConf      = (winScore.toFloat() / totalScore * 100f).toInt()
-        val confidence   = rawConf.coerceIn(51, 94)
+        // Pattern Engine bonus merge
+        buyScore  += patternBuyBonus
+        sellScore += patternSellBonus
 
-        // ── DISPLAY INFO ───────────────────────────────────────────
+        val totalScore = (buyScore + sellScore).coerceAtLeast(1)
+        val signal     = if (buyScore >= sellScore) "BUY" else "SELL"
+        val winScore   = if (signal == "BUY") buyScore else sellScore
+        val confidence = (winScore.toFloat() / totalScore * 100f).toInt().coerceIn(51, 94)
+
         val trend = when {
             trendBull -> "📈 Uptrend (Bullish)"
             trendBear -> "📉 Downtrend (Bearish)"
             reversal  -> "🔄 Reversal"
             else      -> "↔ Sideways"
         }
-
         val rsiInfo = when {
             rsiValue >= 70 -> "RSI $rsiValue — Overbought (खूप खरेदी झाली)"
             rsiValue <= 30 -> "RSI $rsiValue — Oversold (खूप विक्री झाली)"
             else           -> "RSI $rsiValue — Normal zone"
         }
-
         val volumeInfo = when {
             colorRatio > 0.15f -> "🔥 High Volume"
             colorRatio > 0.08f -> "⚡ Medium Volume"
             else               -> "⚠️ Low Volume"
         }
-
         val riskLevel: String; val riskColor: String
         when {
-            confidence < 58 -> { riskLevel = "🔴 HIGH RISK";    riskColor = "#F44336" }
-            confidence < 72 -> { riskLevel = "🟡 MEDIUM RISK";  riskColor = "#FF9800" }
-            else            -> { riskLevel = "🟢 LOW RISK";     riskColor = "#4CAF50" }
+            confidence < 58 -> { riskLevel = "🔴 HIGH RISK";   riskColor = "#F44336" }
+            confidence < 72 -> { riskLevel = "🟡 MEDIUM RISK"; riskColor = "#FF9800" }
+            else            -> { riskLevel = "🟢 LOW RISK";    riskColor = "#4CAF50" }
         }
-
-        val waitMessage = if (isDoji || sideways && diff < 8f)
+        val waitMessage = if (isDoji || (sideways && diff < 8f))
             "⚠️ Market uncertain — 2-3 candles confirm होण्याची वाट पाहा." else ""
-
         val signalReason = reasons.take(3).joinToString(" • ")
-
         val entrySlTarget = if (signal == "BUY")
             "✅ Entry: Current level वर\n🛑 Stop Loss: मागील low खाली\n🎯 Target: मागील high / next resistance"
         else
             "✅ Entry: Current level वर\n🛑 Stop Loss: मागील high वर\n🎯 Target: मागील low / next support"
-
-        val summary = buildString {
-            appendLine("Signal: $signal  |  Strength: $confidence%")
-            appendLine("Trend: $trend  |  $volumeInfo")
-            appendLine("RSI: $rsiInfo")
-            if (signalReason.isNotEmpty()) appendLine("Reason: $signalReason")
-            appendLine()
-            append(entrySlTarget)
-        }
-
         val rrRatio = when {
-            confidence >= 80 -> "⭐ 1:3"
-            confidence >= 70 -> "✅ 1:2"
-            confidence >= 60 -> "⚠️ 1:1.5"
-            else             -> "❌ 1:1 (trade टाळा)"
+            confidence >= 80 -> "⭐ 1:3"; confidence >= 70 -> "✅ 1:2"
+            confidence >= 60 -> "⚠️ 1:1.5"; else -> "❌ 1:1 (trade टाळा)"
         }
 
         return AnalysisResult(
-            isValidChart    = true,
-            signal          = signal,
-            confidence      = confidence,
-            greenPercent    = gp,
-            redPercent      = rp,
-            trend           = trend,
-            volumeInfo      = volumeInfo,
-            sentiment       = if (signal == "BUY") "Bullish" else "Bearish",
+            isValidChart = true, signal = signal, confidence = confidence,
+            greenPercent = gp, redPercent = rp, trend = trend,
+            volumeInfo = volumeInfo, sentiment = if (signal == "BUY") "Bullish" else "Bearish",
             supportResistance = entrySlTarget,
-            summary         = summary,
-            investorInfo    = rrRatio,
-            rsiValue        = rsiValue,
-            rsiInfo         = rsiInfo,
-            riskLevel       = riskLevel,
-            riskColor       = riskColor,
-            waitMessage     = waitMessage,
-            keyFactors      = signalReason,
-            signalReason    = signalReason
+            summary = buildString {
+                appendLine("Signal: $signal  |  Strength: $confidence%")
+                appendLine("Trend: $trend  |  $volumeInfo")
+                appendLine("RSI: $rsiInfo")
+                if (signalReason.isNotEmpty()) appendLine("Reason: $signalReason")
+                appendLine(); append(entrySlTarget)
+            },
+            investorInfo = rrRatio, rsiValue = rsiValue, rsiInfo = rsiInfo,
+            riskLevel = riskLevel, riskColor = riskColor, waitMessage = waitMessage,
+            keyFactors = signalReason, signalReason = signalReason,
+            detectedPatterns = detectedPatterns,
+            patternDisplay = PatternEngine.formatDisplay(detectedPatterns, topN = 5)
         )
     }
 }
