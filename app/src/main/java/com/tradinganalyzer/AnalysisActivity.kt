@@ -121,20 +121,45 @@ class AnalysisActivity : AppCompatActivity() {
         binding.cardFeedback.visibility = View.VISIBLE
         binding.cardNotChart.visibility = View.GONE
 
+        // Signal
         binding.tvSignal.text = result.signal
-        if (result.signal == "BUY") {
-            binding.tvSignal.setTextColor(Color.parseColor("#4CAF50"))
-        } else {
-            binding.tvSignal.setTextColor(Color.parseColor("#F44336"))
-        }
+        binding.tvSignal.setTextColor(
+            if (result.signal == "BUY") Color.parseColor("#4CAF50")
+            else Color.parseColor("#F44336")
+        )
 
+        // Confidence
         binding.tvConfidence.text = "Confidence: ${result.confidence}%"
         binding.progressConfidence.progress = result.confidence
-        binding.tvCandleDirection.text = "📊 Candle Direction: ${result.trend}"
+
+        // Wait message — show prominently if exists
+        if (result.waitMessage.isNotEmpty()) {
+            binding.tvWaitMessage.visibility = View.VISIBLE
+            binding.tvWaitMessage.text = result.waitMessage
+        } else {
+            binding.tvWaitMessage.visibility = View.GONE
+        }
+
+        // Risk level
+        binding.tvRiskLevel.text = result.riskLevel
+        try {
+            binding.tvRiskLevel.setTextColor(Color.parseColor(result.riskColor))
+        } catch (e: Exception) {
+            binding.tvRiskLevel.setTextColor(Color.parseColor("#FF9800"))
+        }
+
+        // RSI
+        binding.tvRsiInfo.text = "📊 ${result.rsiInfo}"
+
+        // Key factors
+        binding.tvKeyFactors.text = result.keyFactors
+
+        // Other fields
+        binding.tvCandleDirection.text = "📈 Candle Direction: ${result.trend}"
         binding.tvGreenPercent.text = "🟢 Bullish Candles: ${String.format("%.1f", result.greenPercent)}%"
         binding.tvRedPercent.text = "🔴 Bearish Candles: ${String.format("%.1f", result.redPercent)}%"
-        binding.tvVolumeInfo.text = "📈 Volume Analysis: ${result.volumeInfo}"
-        binding.tvSentiment.text = "💹 Market Sentiment: ${result.sentiment}"
+        binding.tvVolumeInfo.text = "📊 Volume: ${result.volumeInfo}"
+        binding.tvSentiment.text = "💹 Sentiment: ${result.sentiment}"
         binding.tvSupportResistance.text = "🎯 Key Levels:\n${result.supportResistance}"
         binding.tvInvestorInfo.text = "👥 ${result.investorInfo}"
         binding.tvSummary.text = result.summary
