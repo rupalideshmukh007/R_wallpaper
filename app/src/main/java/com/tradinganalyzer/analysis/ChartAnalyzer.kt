@@ -27,7 +27,20 @@ data class AnalysisResult(
     val keyFactors: String = "",
     val signalReason: String = "",
     val detectedPatterns: List<PatternResult> = emptyList(),
-    val patternDisplay: String = ""
+    val patternDisplay: String = "",
+    val candleCount: Int = 0,
+    val candleEngineSignal: String = "",
+    val candleEngineConfidence: Int = 0,
+    val candleContext: String = "",
+    val candleDetails: String = "",
+    val weightBreakdown: String = "",
+    val closePositionStr: String = "",
+    val wickAnalysis: String = "",
+    val currentCandleScore: Int = 0,
+    val ema200Above: Boolean = false,
+    val ema200Valid: Boolean = false,
+    val goldenCross: Boolean = false,
+    val deathCross: Boolean = false
 )
 
 object ChartAnalyzer {
@@ -36,7 +49,6 @@ object ChartAnalyzer {
 
         val bw = bitmap.width.toFloat()
         val bh = bitmap.height.toFloat()
-
         val scanX1 = (bw * 0.115f).toInt()
         val scanY1 = (bh * 0.120f).toInt()
         val scanX2 = (bw * 0.930f).toInt()
@@ -44,11 +56,11 @@ object ChartAnalyzer {
 
         var greenPixels = 0L; var redPixels = 0L
         var skinPixels  = 0L; var totalPixels = 0L; var backgroundPixels = 0L
-        var topGreen    = 0L; var topRed    = 0L
+        var topGreen = 0L; var topRed = 0L
         var bottomGreen = 0L; var bottomRed = 0L
-        var leftGreen   = 0L; var leftRed   = 0L
-        var midGreen    = 0L; var midRed    = 0L
-        var rightGreen  = 0L; var rightRed  = 0L
+        var leftGreen = 0L; var leftRed = 0L
+        var midGreen = 0L; var midRed = 0L
+        var rightGreen = 0L; var rightRed = 0L
         var tlGreen = 0L; var tlRed = 0L
         var trGreen = 0L; var trRed = 0L
         var blGreen = 0L; var blRed = 0L
@@ -65,21 +77,18 @@ object ChartAnalyzer {
             for (y in scanY1 until scanY2) {
                 if (x >= bitmap.width || y >= bitmap.height) continue
                 val pixel = bitmap.getPixel(x, y)
-                val r = Color.red(pixel)
-                val g = Color.green(pixel)
-                val b = Color.blue(pixel)
+                val r = Color.red(pixel); val g = Color.green(pixel); val b = Color.blue(pixel)
                 if (Color.alpha(pixel) < 50) continue
                 totalPixels++
                 if ((r + g + b) / 3 > 215) { backgroundPixels++; continue }
                 val isSkin = r > 100 && g > 50 && b > 30 && r > g && r > b &&
                              (r - g) in 10..120 && b < 180
                 if (isSkin) { skinPixels++; continue }
-                val maxC = maxOf(r, g, b)
-                val minC = minOf(r, g, b)
+                val maxC = maxOf(r, g, b); val minC = minOf(r, g, b)
                 val sat  = if (maxC > 0) (maxC - minC).toFloat() / maxC else 0f
                 if (sat < 0.28f) continue
-                val isTealGreen  = g > 55 && b > 55 && g > r * 1.4f && b > r * 1.4f
-                val isPureGreen  = g > 100 && g > r * 2.8f && g > b * 2.8f
+                val isTealGreen   = g > 55 && b > 55 && g > r * 1.4f && b > r * 1.4f
+                val isPureGreen   = g > 100 && g > r * 2.8f && g > b * 2.8f
                 val isGreenCandle = isTealGreen || isPureGreen
                 val isRedCandle   = r > 55 && r > g * 1.5f && r > b * 1.5f
                 val isBlue        = b > r * 1.3f && b > g * 1.3f
@@ -90,23 +99,18 @@ object ChartAnalyzer {
                     greenPixels++
                     if (y < halfH) topGreen++ else bottomGreen++
                     when { x < thirdW1 -> leftGreen++; x < thirdW2 -> midGreen++; else -> rightGreen++ }
-                    if      (y < halfH && x < halfW) tlGreen++
-                    else if (y < halfH)              trGreen++
-                    else if (x < halfW)              blGreen++
-                    else                             brGreen++
+                    if (y < halfH && x < halfW) tlGreen++ else if (y < halfH) trGreen++
+                    else if (x < halfW) blGreen++ else brGreen++
                 } else {
                     redPixels++
                     if (y < halfH) topRed++ else bottomRed++
                     when { x < thirdW1 -> leftRed++; x < thirdW2 -> midRed++; else -> rightRed++ }
-                    if      (y < halfH && x < halfW) tlRed++
-                    else if (y < halfH)              trRed++
-                    else if (x < halfW)              blRed++
-                    else                             brRed++
+                    if (y < halfH && x < halfW) tlRed++ else if (y < halfH) trRed++
+                    else if (x < halfW) blRed++ else brRed++
                 }
             }
         }
 
-        // ── Validation ────────────────────────────────────────────────
         val analyzable = totalPixels - backgroundPixels
         if (analyzable <= 0) return AnalysisResult(
             isValidChart = false,
@@ -123,12 +127,10 @@ object ChartAnalyzer {
             notChartReason = "❌ Chart candles सापडले नाहीत!\nZerodha / TradingView / Upstox Candlestick chart upload करा."
         )
 
-        // ── Pixel % (raw) ─────────────────────────────────────────────
         val gp   = if (coloredPixels > 0) greenPixels.toFloat() / coloredPixels * 100f else 50f
         val rp   = if (coloredPixels > 0) redPixels.toFloat()   / coloredPixels * 100f else 50f
         val diff = Math.abs(gp - rp)
 
-        // ── Pattern Engine ────────────────────────────────────────────
         val pixelData = PixelData(
             greenPixels = greenPixels, redPixels = redPixels, gp = gp, rp = rp,
             topGreen = topGreen, topRed = topRed,
@@ -136,102 +138,101 @@ object ChartAnalyzer {
             leftGreen = leftGreen, leftRed = leftRed,
             midGreen = midGreen, midRed = midRed,
             rightGreen = rightGreen, rightRed = rightRed,
-            tlGreen = tlGreen, tlRed = tlRed,
-            trGreen = trGreen, trRed = trRed,
-            blGreen = blGreen, blRed = blRed,
-            brGreen = brGreen, brRed = brRed,
+            tlGreen = tlGreen, tlRed = tlRed, trGreen = trGreen, trRed = trRed,
+            blGreen = blGreen, blRed = blRed, brGreen = brGreen, brRed = brRed,
             colorRatio = colorRatio
         )
         val detectedPatterns = PatternEngine.detect(pixelData)
         val hasPatterns      = detectedPatterns.isNotEmpty()
 
-        // ════════════════════════════════════════════════════════════════
-        // CHANGE 3: Pattern BUY/SELL % — Pattern 90% + Pixel 10%
-        // ════════════════════════════════════════════════════════════════
-        val totalPatConf = detectedPatterns.sumOf { it.confidence.toLong() }.coerceAtLeast(1L)
-        val bullConf     = detectedPatterns.filter { it.patternType == "Bullish" }.sumOf { it.confidence.toLong() }
-        val bearConf     = detectedPatterns.filter { it.patternType == "Bearish" }.sumOf { it.confidence.toLong() }
-
+        val totalPatConf  = detectedPatterns.sumOf { it.confidence.toLong() }.coerceAtLeast(1L)
+        val bullConf      = detectedPatterns.filter { it.patternType == "Bullish" }.sumOf { it.confidence.toLong() }
+        val bearConf      = detectedPatterns.filter { it.patternType == "Bearish" }.sumOf { it.confidence.toLong() }
         val patternBuyPct  = if (hasPatterns) bullConf.toFloat() / totalPatConf * 100f else 50f
         val patternSellPct = if (hasPatterns) bearConf.toFloat() / totalPatConf * 100f else 50f
 
-        // Display % — Pattern 90% + Pixel 10% जेव्हा patterns आहेत
-        // Pattern नाही → फक्त Pixel %
-        val displayBuyPct  = if (hasPatterns) patternBuyPct * 0.9f + gp * 0.1f else gp
-        val displaySellPct = if (hasPatterns) patternSellPct * 0.9f + rp * 0.1f else rp
+        val candleResult    = CandleEngine.analyze(bitmap, scanX1, scanY1, scanX2, scanY2)
+        val hasCandleSignal = candleResult.candleCount >= 3
 
-        // ── Signal = Display % वरून ───────────────────────────────────
+        val candleBuyPct  = if (candleResult.signal == "BUY")
+            candleResult.confidence.toFloat() else (100f - candleResult.confidence)
+        val candleSellPct = 100f - candleBuyPct
+
+        val candleWeight  = if (hasCandleSignal) 0.80f else 0f
+        val patternWeight = when {
+            hasCandleSignal -> 0.10f
+            hasPatterns     -> 0.60f
+            else            -> 0f
+        }
+        val pixelWeight = 1f - candleWeight - patternWeight
+
+        val displayBuyPct  = candleBuyPct  * candleWeight + patternBuyPct  * patternWeight + gp * pixelWeight
+        val displaySellPct = candleSellPct * candleWeight + patternSellPct * patternWeight + rp * pixelWeight
         val signal = if (displayBuyPct >= displaySellPct) "BUY" else "SELL"
 
-        // ════════════════════════════════════════════════════════════════
-        // CHANGE 2: Signal Strength (Confidence) = Pattern ONLY
-        // ════════════════════════════════════════════════════════════════
-        val patternConf: Float = if (hasPatterns) {
-            val aligned = detectedPatterns.filter {
-                (signal == "BUY"  && it.patternType == "Bullish") ||
-                (signal == "SELL" && it.patternType == "Bearish")
+        val confidence: Int = when {
+            hasCandleSignal -> {
+                val aligned = detectedPatterns.filter {
+                    (signal == "BUY"  && it.patternType == "Bullish") ||
+                    (signal == "SELL" && it.patternType == "Bearish")
+                }
+                val patternBonus = if (aligned.isNotEmpty())
+                    aligned.map { it.confidence }.average().toFloat() * 0.10f else 0f
+                (candleResult.confidence * 0.90f + patternBonus).toInt().coerceIn(1, 100)
             }
-            val opposing = detectedPatterns.filter {
-                (signal == "BUY"  && it.patternType == "Bearish") ||
-                (signal == "SELL" && it.patternType == "Bullish")
+            hasPatterns -> {
+                val aligned = detectedPatterns.filter {
+                    (signal == "BUY"  && it.patternType == "Bullish") ||
+                    (signal == "SELL" && it.patternType == "Bearish")
+                }
+                val opposing = detectedPatterns.filter {
+                    (signal == "BUY"  && it.patternType == "Bearish") ||
+                    (signal == "SELL" && it.patternType == "Bullish")
+                }.map { it.confidence }.average().toFloat() * 0.3f
+                val base = if (aligned.isNotEmpty())
+                    aligned.map { it.confidence }.average().toFloat() else 50f
+                (base - opposing).toInt().coerceIn(1, 100)
             }
-            val alignedAvg  = if (aligned.isNotEmpty())
-                aligned.map { it.confidence }.average().toFloat() else 50f
-            val opposingPen = if (opposing.isNotEmpty())
-                opposing.map { it.confidence }.average().toFloat() * 0.3f else 0f
-            (alignedAvg - opposingPen).coerceIn(0f, 100f)
-        } else {
-            // Pattern नाही → Pixel ratio वरून fallback confidence
-            val winPct = if (signal == "BUY") displayBuyPct else displaySellPct
-            ((winPct - 50f) / 50f * 100f).coerceIn(0f, 100f)
+            else -> {
+                val winPct = if (signal == "BUY") displayBuyPct else displaySellPct
+                ((winPct - 50f) / 50f * 100f).toInt().coerceIn(1, 100)
+            }
         }
 
-        val confidence = patternConf.toInt().coerceIn(1, 100)
+        val trend = if (hasCandleSignal) candleResult.trend
+        else when {
+            topGreen > topRed   && bottomGreen > bottomRed   -> "📈 Uptrend (Bullish)"
+            topRed   > topGreen && bottomRed   > bottomGreen -> "📉 Downtrend (Bearish)"
+            topGreen > topRed   && bottomRed   > bottomGreen -> "🔄 Reversal"
+            else                                              -> "↔️ Sideways"
+        }
 
-        // ── Trend ─────────────────────────────────────────────────────
-        val trendBull = topGreen > topRed   && bottomGreen > bottomRed
-        val trendBear = topRed   > topGreen && bottomRed   > bottomGreen
-        val reversal  = topGreen > topRed   && bottomRed   > bottomGreen
-        val sideways  = !trendBull && !trendBear && !reversal
-        val isDoji    = diff < 6f
-
-        // ── Reasons (for display only) ────────────────────────────────
-        val reasons = mutableListOf<String>()
-        if (trendBull) reasons.add("Uptrend")
-        if (trendBear) reasons.add("Downtrend")
-        if (reversal)  reasons.add("Reversal")
-        if (isDoji)    reasons.add("Doji — Market uncertain")
-        val highVolume = colorRatio > 0.10f
-        val lowVolume  = colorRatio < 0.03f
-        if (highVolume && displayBuyPct > displaySellPct)  reasons.add("High Volume — Bullish")
-        if (highVolume && displaySellPct > displayBuyPct)  reasons.add("High Volume — Bearish")
-        if (lowVolume)  reasons.add("Low Volume — Weak signal")
-        if (bottomGreen > bottomRed * 1.3f) reasons.add("Strong Support")
-        if (topRed > topGreen * 1.3f)       reasons.add("Strong Resistance")
-
-        // ── RSI ───────────────────────────────────────────────────────
-        val rsiValue = when {
+        val rsiValue = if (hasCandleSignal) candleResult.rsiEstimate
+        else when {
             gp > 75 -> (70 + ((gp - 75) / 25 * 20)).toInt().coerceIn(70, 90)
             gp < 25 -> (30 - ((25 - gp) / 25 * 20)).toInt().coerceIn(10, 30)
             else    -> (30 + (gp / 100 * 40)).toInt().coerceIn(30, 70)
         }
-        when {
-            rsiValue >= 75 -> reasons.add("RSI $rsiValue — Overbought")
-            rsiValue <= 25 -> reasons.add("RSI $rsiValue — Oversold")
-        }
 
-        // ── Display labels ────────────────────────────────────────────
-        val confidenceLabel = when {
-            confidence >= 85 -> "Very Strong"
-            confidence >= 70 -> "Strong"
-            confidence >= 55 -> "Medium"
-            else             -> "Weak"
+        val reasons = mutableListOf<String>()
+        if (hasCandleSignal) {
+            if (candleResult.goldenCross)    reasons.add("Golden Cross 🌟")
+            if (candleResult.deathCross)     reasons.add("Death Cross 💀")
+            reasons.add(candleResult.patternContext)
+            if (candleResult.nearSupport)    reasons.add("Support Zone")
+            if (candleResult.nearResistance) reasons.add("Resistance Zone")
+            if (candleResult.isBreakout)     reasons.add("Breakout ✅")
+            if (candleResult.isFakeout)      reasons.add("Fakeout ⚠️")
+        } else {
+            if (topGreen > topRed   && bottomGreen > bottomRed)   reasons.add("Uptrend")
+            if (topRed   > topGreen && bottomRed   > bottomGreen) reasons.add("Downtrend")
         }
-        val trend = when {
-            trendBull -> "📈 Uptrend (Bullish)"
-            trendBear -> "📉 Downtrend (Bearish)"
-            reversal  -> "🔄 Reversal"
-            else      -> "↔️ Sideways"
+        if (rsiValue >= 70) reasons.add("RSI $rsiValue — Overbought")
+        if (rsiValue <= 30) reasons.add("RSI $rsiValue — Oversold")
+
+        val confidenceLabel = when {
+            confidence >= 85 -> "Very Strong"; confidence >= 70 -> "Strong"
+            confidence >= 55 -> "Medium";      else             -> "Weak"
         }
         val rsiInfo = when {
             rsiValue >= 70 -> "RSI $rsiValue — Overbought (खूप खरेदी झाली)"
@@ -239,23 +240,29 @@ object ChartAnalyzer {
             else           -> "RSI $rsiValue — Normal zone"
         }
         val volumeInfo = when {
+            hasCandleSignal && candleResult.volumeConfirmed -> "🔥 Volume Confirmed ✅"
             colorRatio > 0.12f -> "🔥 High Volume"
             colorRatio > 0.06f -> "⚡ Medium Volume"
             else               -> "⚠️ Low Volume"
         }
-        val riskLevel: String
-        val riskColor: String
+
+        val riskLevel: String; val riskColor: String
         when {
-            confidence <= 40 -> { riskLevel = "🔴 HIGH RISK — Weak Signal ($confidenceLabel)";       riskColor = "#F44336" }
-            confidence <= 65 -> { riskLevel = "🟡 MEDIUM RISK — Moderate Signal ($confidenceLabel)"; riskColor = "#FF9800" }
-            confidence <= 84 -> { riskLevel = "🟢 LOW RISK — Strong Signal ($confidenceLabel)";      riskColor = "#4CAF50" }
-            else             -> { riskLevel = "⭐ VERY LOW RISK — Very Strong ($confidenceLabel)";   riskColor = "#2196F3" }
+            confidence <= 40 -> { riskLevel = "🔴 HIGH RISK ($confidenceLabel)";     riskColor = "#F44336" }
+            confidence <= 65 -> { riskLevel = "🟡 MEDIUM RISK ($confidenceLabel)";   riskColor = "#FF9800" }
+            confidence <= 84 -> { riskLevel = "🟢 LOW RISK ($confidenceLabel)";      riskColor = "#4CAF50" }
+            else             -> { riskLevel = "⭐ VERY LOW RISK ($confidenceLabel)"; riskColor = "#2196F3" }
         }
 
-        val waitMessage = if (isDoji || (sideways && diff < 8f))
-            "⚠️ Market uncertain — 2-3 candles confirm होण्याची वाट पाहा." else ""
-
-        val signalReason = reasons.take(3).joinToString(" • ")
+        val waitMessage = when {
+            hasCandleSignal && candleResult.isFakeout ->
+                "⚠️ Fakeout — volume confirm नाही. 2-3 candles confirm होण्याची वाट पाहा."
+            hasCandleSignal && candleResult.trend == "Sideways" ->
+                "⚠️ Sideways market — direction clear होण्याची वाट पाहा."
+            !hasCandleSignal && diff < 6f ->
+                "⚠️ Market uncertain — 2-3 candles confirm होण्याची वाट पाहा."
+            else -> ""
+        }
 
         val entrySlTarget = if (signal == "BUY")
             "✅ Entry: Current level वर\n🛑 Stop Loss: मागील low खाली\n🎯 Target: मागील high / next resistance"
@@ -269,41 +276,60 @@ object ChartAnalyzer {
             else             -> "❌ 1:1 (Weak — trade टाळा)"
         }
 
+        val signalReason   = reasons.take(3).joinToString(" • ")
         val patternDisplay = PatternEngine.formatDisplay(detectedPatterns, topN = 5)
+
+        val weightBreakdown = buildString {
+            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            appendLine("⚖️ WEIGHT BREAKDOWN")
+            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            appendLine("🕯️ Candle Engine : ${(candleWeight * 100).toInt()}%  → ${if (hasCandleSignal) "${candleResult.signal} (${candleResult.confidence}%)" else "Not detected"}")
+            appendLine("📊 Pattern Engine: ${(patternWeight * 100).toInt()}%  → ${if (hasPatterns) "BUY ${patternBuyPct.toInt()}% / SELL ${patternSellPct.toInt()}%" else "No patterns"}")
+            appendLine("📸 Pixel Engine  : ${(pixelWeight * 100).toInt()}%  → BUY ${gp.toInt()}% / SELL ${rp.toInt()}%")
+            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            if (hasCandleSignal && candleResult.goldenCross) appendLine("🌟 GOLDEN CROSS ACTIVE")
+            if (hasCandleSignal && candleResult.deathCross)  appendLine("💀 DEATH CROSS ACTIVE")
+            append("🎯 Final: $signal  |  Confidence: $confidence%")
+        }
 
         val summary = buildString {
             appendLine("Signal: $signal  |  Strength: $confidence% ($confidenceLabel)")
             appendLine("Trend: $trend  |  $volumeInfo")
             appendLine("RSI: $rsiInfo")
+            if (hasCandleSignal) {
+                appendLine("Candle: ${candleResult.currentCandleStr}")
+                appendLine("Close: ${candleResult.closePositionStr}")
+            }
             if (signalReason.isNotEmpty()) appendLine("Reason: $signalReason")
             appendLine()
             append(entrySlTarget)
         }
 
         return AnalysisResult(
-            isValidChart       = true,
-            signal             = signal,
-            confidence         = confidence,
-            greenPercent       = gp,
-            redPercent         = rp,
-            displayBuyPercent  = displayBuyPct,
-            displaySellPercent = displaySellPct,
-            hasPatterns        = hasPatterns,
-            trend              = trend,
-            volumeInfo         = volumeInfo,
-            sentiment          = if (signal == "BUY") "Bullish" else "Bearish",
-            supportResistance  = entrySlTarget,
-            summary            = summary,
-            investorInfo       = rrRatio,
-            rsiValue           = rsiValue,
-            rsiInfo            = rsiInfo,
-            riskLevel          = riskLevel,
-            riskColor          = riskColor,
-            waitMessage        = waitMessage,
-            keyFactors         = signalReason,
-            signalReason       = signalReason,
-            detectedPatterns   = detectedPatterns,
-            patternDisplay     = patternDisplay
+            isValidChart = true,
+            signal = signal, confidence = confidence,
+            greenPercent = gp, redPercent = rp,
+            displayBuyPercent = displayBuyPct, displaySellPercent = displaySellPct,
+            hasPatterns = hasPatterns, trend = trend,
+            volumeInfo = volumeInfo, sentiment = if (signal == "BUY") "Bullish" else "Bearish",
+            supportResistance = entrySlTarget, summary = summary,
+            investorInfo = rrRatio, rsiValue = rsiValue, rsiInfo = rsiInfo,
+            riskLevel = riskLevel, riskColor = riskColor,
+            waitMessage = waitMessage, keyFactors = signalReason, signalReason = signalReason,
+            detectedPatterns = detectedPatterns, patternDisplay = patternDisplay,
+            candleCount = candleResult.candleCount,
+            candleEngineSignal = candleResult.signal,
+            candleEngineConfidence = candleResult.confidence,
+            candleContext = candleResult.patternContext,
+            candleDetails = candleResult.detailsStr,
+            weightBreakdown = weightBreakdown,
+            closePositionStr   = if (hasCandleSignal) candleResult.closePositionStr  else "",
+            wickAnalysis       = if (hasCandleSignal) candleResult.wickAnalysis       else "",
+            currentCandleScore = if (hasCandleSignal) candleResult.currentCandleScore else 0,
+            ema200Above  = if (hasCandleSignal) candleResult.ema200Above  else false,
+            ema200Valid  = if (hasCandleSignal) candleResult.ema200Valid   else false,
+            goldenCross  = if (hasCandleSignal) candleResult.goldenCross   else false,
+            deathCross   = if (hasCandleSignal) candleResult.deathCross    else false
         )
     }
-}
+                       }
