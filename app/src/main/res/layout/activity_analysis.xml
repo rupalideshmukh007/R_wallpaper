@@ -78,21 +78,32 @@
                     android:textSize="56sp"
                     android:textStyle="bold"
                     android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="12dp"
+                    android:layout_marginBottom="4dp"
                     android:text="" />
 
-                <!-- BUY% | SELL% -->
+                <!-- Label: Pattern Analysis -->
+                <TextView
+                    android:id="@+id/tvPatternLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="📊 Pattern Analysis"
+                    android:textSize="12sp"
+                    android:textColor="#666666"
+                    android:gravity="center"
+                    android:layout_marginBottom="6dp" />
+
+                <!-- Pattern BUY% | SELL% (90% pattern + 10% pixel) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
+                    android:layout_marginBottom="10dp">
                     <TextView
                         android:id="@+id/tvBuyChance"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textSize="20sp"
+                        android:textSize="22sp"
                         android:textStyle="bold"
                         android:gravity="center"
                         android:background="#E8F5E9"
@@ -104,7 +115,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textSize="20sp"
+                        android:textSize="22sp"
                         android:textStyle="bold"
                         android:gravity="center"
                         android:background="#FFEBEE"
@@ -113,7 +124,21 @@
                         android:text="" />
                 </LinearLayout>
 
-                <!-- Confidence bar -->
+                <!-- CHANGE 4: Pixel BUY/SELL % वेगळं (फक्त pattern असेल तेव्हा दाखवतो) -->
+                <TextView
+                    android:id="@+id/tvPixelStats"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textColor="#888888"
+                    android:background="#F5F5F5"
+                    android:padding="10dp"
+                    android:gravity="center"
+                    android:layout_marginBottom="10dp"
+                    android:visibility="gone"
+                    android:text="" />
+
+                <!-- Confidence bar (Pattern only) -->
                 <ProgressBar
                     android:id="@+id/progressConfidence"
                     style="@android:style/Widget.ProgressBar.Horizontal"
@@ -168,7 +193,7 @@
                     android:visibility="gone"
                     android:text="" />
 
-                <!-- Entry / SL / Target -->
+                <!-- Entry / SL / Target + Pattern display -->
                 <TextView
                     android:id="@+id/tvSummary"
                     android:layout_width="match_parent"
