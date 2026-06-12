@@ -44,17 +44,19 @@ data class AnalysisResult(
     val deathCross: Boolean = false,
     val patternsFound: List<PatternResult> = emptyList(),
     val currentPosition: String = "",
-    val rightSidePixelBox: String = "" // 🎯 उजव्या बाजूच्या बॉक्ससाठी नवीन व्हेरिएबल
+    val rightSidePixelBox: String = ""
 )
 
 object ChartAnalyzer {
+
+    // 🎯 ग्लोबल मेमरी लिस्ट
+    private var closePricesList = mutableListOf<Float>()
 
     fun analyze(bitmap: Bitmap): AnalysisResult {
 
         val bw = bitmap.width
         val bh = bitmap.height
 
-        // 🎯 IMAGE PRE-PROCESSING Bounds
         val scanX1 = (bw * 0.115f).toInt()
         val scanY1 = (bh * 0.120f).toInt()
         val scanX2 = (bw * 0.930f).toInt()
@@ -63,7 +65,6 @@ object ChartAnalyzer {
         val zoneH = (scanY2 - scanY1).coerceAtLeast(1)
         val chartMiddle = scanY1 + (zoneH / 2)
 
-        // COORDINATE MAPPING VARIABLES
         var topWickY = scanY2.toFloat()
         var bottomWickY = scanY1.toFloat()
         var bodyTopY = scanY2.toFloat()
@@ -72,7 +73,7 @@ object ChartAnalyzer {
         var greenEdgesDetected = 0
         var redEdgesDetected = 0
 
-        // ── EDGE DETECTION THRESHOLDING ──
+        // EDGE DETECTION MAPPING
         for (x in scanX1 until scanX2 step 4) {
             for (y in scanY1 until scanY2 step 4) {
                 val pixel = bitmap.getPixel(x, y)
@@ -106,7 +107,6 @@ object ChartAnalyzer {
             return AnalysisResult(isValidChart = false, notChartReason = "❌ Chart कडा अस्पष्ट आहेत.")
         }
 
-        // 📐 OHLC EXTRACTION MATH
         val isGreenCandle = greenEdgesDetected > redEdgesDetected
         val openPrice = if (isGreenCandle) bodyBottomY else bodyTopY
         val closePrice = if (isGreenCandle) bodyTopY else bodyBottomY
@@ -115,14 +115,20 @@ object ChartAnalyzer {
         val candleCenter = (topWickY + bottomWickY) / 2f
         val currentPosition = if (candleCenter < chartMiddle) "TOP" else "BOTTOM"
 
-        // 🧠 RUN PATTERN ENGINE
-        val currentTrend = if (isGreenCandle) "UP" else "DOWN"
-        val mockCloses = listOf(closePrice * 0.97f, closePrice * 0.98f, closePrice * 0.99f, closePrice)
-        val rsiValue = PatternEngine.rsi(mockCloses).toInt().coerceIn(10, 90)
+        // ── STEP 3: CANDLE ENGINE BACKEND CALL ──
+        val candleResult = CandleEngine.analyze(bitmap, scanX1, scanY1, scanX2, scanY2)
+        val hasCandleSignal = candleResult.candleCount >= 3
 
-        val rawPatterns = PatternEngine().analyze(extractedCandle, currentTrend, rsiValue.toFloat())
+        // मेमरी लिस्ट मॅनेजमेंट
+        closePricesList.add(closePrice)
+        if (closePricesList.size > 200) closePricesList.removeAt(0)
+
+        // 🎯 फिक्स: स्टॅटिक companion object वरून आरएसआय मिळवणे
+        val rsiValue = PatternEngine.rsi(closePricesList).toInt().coerceIn(10, 90)
+
+        // 🎯 फिक्स: फक्त २ पॅरामीटर्स पाठवून PatternEngine चा परफेक्ट कॉल करणे!
+        val rawPatterns = PatternEngine().analyze(extractedCandle, closePricesList)
         
-        // सर्वच्या सर्व पॅटर्न्स दाखवण्यासाठी युनिक ग्रुपिंग करणे
         val scoredPatterns = rawPatterns
             .groupBy { it.patternName }
             .map { it.value.maxByOrNull { p -> p.confidence }!! }
@@ -132,7 +138,6 @@ object ChartAnalyzer {
         val bullishPatterns = scoredPatterns.filter { it.patternType == "BULLISH" }
         val bearishPatterns = scoredPatterns.filter { it.patternType == "BEARISH" }
 
-        // 🎯 निकाल: केवळ पॅटर्नच्या बहुमतावरून एकच अंतिम सिग्नल!
         val signal: String
         val confidence: Int
         val triggerReason: String
@@ -153,7 +158,7 @@ object ChartAnalyzer {
             triggerReason = "OHLC Neutral Trend"
         }
 
-        // ── 📊 ⚙️ RIGHT SIDE PIXEL CALCULATION BOX (उजव्या बाजूचा सेपरेट बॉक्स डेटा) ──
+        // ── 📊 RIGHT SIDE PIXEL CALCULATION BOX ──
         val rightSidePixelBox = buildString {
             appendLine("📐 [ PIXEL CALCULATION BOX ]")
             appendLine("• Green Pixels Matched: $greenEdgesDetected")
@@ -163,14 +168,12 @@ object ChartAnalyzer {
             append("• Calculation Mode: Background Scanning")
         }
 
-        // मुख्य स्क्रीनसाठी डिस्प्ले टक्केवारी (फक्त पॅटर्न ओरिएंटेड)
         val displayBuyPercent = if (signal == "BUY") 50f + (confidence / 2f) else 50f - (confidence / 2f)
         val displaySellPercent = 100f - displayBuyPercent
 
-        // स्क्रीनवर एकाच वेळी दिसणारे सर्व पॅटर्न्स फॉरमॅट करणे
-        val patternDisplay = scoredPatterns.joinToString("\n") { 
-            "• ${it.patternName} (${it.patternType}) -> Conf: ${it.confidence}%" 
-        }
+        val patternDisplay = PatternEngine.formatDisplay(scoredPatterns, topN = 5)
+        val rsiInfo = "RSI $rsiValue — " + if (rsiValue >= 70) "Overbought" else if (rsiValue <= 30) "Oversold" else "Normal Zone"
+        val volumeInfo = if (totalEdges.toFloat() / zoneArea > 0.12f) "🔥 High Volume" else "⚡ Medium Volume"
 
         val entrySlTarget = if (signal == "BUY")
             "✅ Entry: Above High\n🛑 SL: Below Pattern Low\n🎯 Target: Resistance Zone"
@@ -193,16 +196,28 @@ object ChartAnalyzer {
             displayBuyPercent = displayBuyPercent,
             displaySellPercent = displaySellPercent,
             hasPatterns = hasPatterns,
-            trend = "Trend: $currentTrend ($currentPosition)",
+            trend = "Trend: ${if(isGreenCandle)"UP" else "DOWN"} ($currentPosition)",
+            volumeInfo = volumeInfo,
             sentiment = if (signal == "BUY") "Bullish" else "Bearish",
             supportResistance = entrySlTarget,
             summary = summary,
+            investorInfo = if (confidence >= 70) "✅ 1:3 (Strong)" else "⚠️ 1:2 (Medium)",
+            rsiValue = rsiValue,
+            rsiInfo = rsiInfo,
+            riskLevel = if (confidence >= 75) "🟢 LOW RISK" else "🟡 MEDIUM RISK",
+            riskColor = if (confidence >= 75) "#4CAF50" else "#FF9800",
             keyFactors = triggerReason,
             signalReason = triggerReason,
             detectedPatterns = scoredPatterns,
             patternDisplay = patternDisplay,
             currentPosition = currentPosition,
-            rightSidePixelBox = rightSidePixelBox // 🎯 उजव्या बॉक्समध्ये डेटा पाठवला
+            candleCount = candleResult.candleCount,
+            candleEngineSignal = candleResult.signal,
+            candleEngineConfidence = candleResult.confidence,
+            candleContext = candleResult.patternContext,
+            candleDetails = candleResult.detailsStr,
+            weightBreakdown = "Trigger: $triggerReason | Position: $currentPosition",
+            rightSidePixelBox = rightSidePixelBox
         )
     }
 }
