@@ -66,7 +66,7 @@ class AnalysisActivity : AppCompatActivity() {
                 }
                 val result = withContext(Dispatchers.Default) { ChartAnalyzer.analyze(bitmap) }
                 withContext(Dispatchers.Main) {
-                    if (result.isValidChart) displayResult(result) else showError(result.notChartReason)
+                    if (result.isValidChart) displayResult(result) else showError(result.notChartReason ?: "")
                 }
                 if (result.isValidChart) {
                     recordId = withContext(Dispatchers.IO) {
