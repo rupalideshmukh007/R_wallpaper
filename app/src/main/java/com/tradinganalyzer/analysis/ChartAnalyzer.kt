@@ -166,7 +166,7 @@ object ChartAnalyzer {
         val patternBuyPct  = if (hasPatterns) bullConf.toFloat() / totalPatConf * 100f else 50f
         val patternSellPct = if (hasPatterns) bearConf.toFloat() / totalPatConf * 100f else 50f
 
-        // ── STEP 5: WEIGHTED SIGNAL ───────────────────────────────────────────
+       // ── STEP 5: WEIGHTED SIGNAL ───────────────────────────────────────────
         // CandleEngine 80% | PatternEngine 10% | Pixel 10%
         // Fallback (no candle + patterns): Pattern 60% + Pixel 40%
         // Fallback (no candle + no patterns): Pixel 100%
@@ -182,12 +182,9 @@ object ChartAnalyzer {
         }
         val pixelWeight = 1f - candleWeight - patternWeight
 
-        val displayBuyPct  = candleBuyPct  * candleWeight +
-                             patternBuyPct  * patternWeight +
-                             gp             * pixelWeight
-        val displaySellPct = candleSellPct * candleWeight +
-                             patternSellPct * patternWeight +
-                             rp             * pixelWeight
+        // 🟢 गाईडलाईन बदल: जुने gp आणि rp काढून पिक्सेलचे वजन थेट पॅटर्नच्या टक्क्यांना जोडले आहे
+        val displayBuyPct  = (candleBuyPct * candleWeight) + (patternBuyPct * (patternWeight + pixelWeight))
+        val displaySellPct = (candleSellPct * candleWeight) + (patternSellPct * (patternWeight + pixelWeight))
 
         val signal = if (displayBuyPct >= displaySellPct) "BUY" else "SELL"
 
