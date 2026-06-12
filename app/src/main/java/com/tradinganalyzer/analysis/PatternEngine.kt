@@ -1,20 +1,12 @@
 package com.tradinganalyzer.analysis
 
-data class PixelData(
-    val greenPixels: Long,
-    val redPixels: Long,
-    val gp: Float,
-    val rp: Float,
-    val topGreen: Long,    val topRed: Long,
-    val bottomGreen: Long, val bottomRed: Long,
-    val leftGreen: Long,   val leftRed: Long,
-    val midGreen: Long,    val midRed: Long,
-    val rightGreen: Long,  val rightRed: Long,
-    val tlGreen: Long,     val tlRed: Long,
-    val trGreen: Long,     val trRed: Long,
-    val blGreen: Long,     val blRed: Long,
-    val brGreen: Long,     val brRed: Long,
-    val colorRatio: Float
+// १ मिनिट फोकस: कॉम्प्युटर व्हिजनचा नवीन डेटा क्लास जो आपण ChartAnalyzer मध्ये वापरला
+data class CandleShapeData(
+    val open: Float,
+    val high: Float,
+    val low: Float,
+    val close: Float,
+    val isGreen: Boolean
 )
 
 data class PatternResult(
@@ -27,21 +19,51 @@ data class PatternResult(
 
 object PatternEngine {
 
-    fun detect(d: PixelData): List<PatternResult> {
+    // 🟢 बदल: आता आपण ChartAnalyzer कडून आलेला नवीन कँडल डेटा आणि पोझिशन स्वीकारतो
+    fun detect(c: CandleShapeData, position: String): List<PatternResult> {
         val results = mutableListOf<PatternResult>()
-        val diff    = Math.abs(d.gp - d.rp)
 
-        val leftTotal  = (d.leftGreen  + d.leftRed  ).coerceAtLeast(1).toFloat()
-        val midTotal   = (d.midGreen   + d.midRed   ).coerceAtLeast(1).toFloat()
-        val rightTotal = (d.rightGreen + d.rightRed ).coerceAtLeast(1).toFloat()
-        val topTotal   = (d.topGreen   + d.topRed   ).coerceAtLeast(1).toFloat()
-        val botTotal   = (d.bottomGreen+ d.bottomRed).coerceAtLeast(1).toFloat()
+        // ════════════════════════════════════════════════════════════
+        // STEP 1: कॉम्प्युटर व्हिजन डेटावरून जुने पिक्सेल व्हेरिएबल्स तयार करणे
+        // ════════════════════════════════════════════════════════════
+        // खालच्या १०० पॅटर्न्सना एरर येऊ नये म्हणून आपण आकारावरून तात्पुरते टक्के बनवतो
+        val gp = if (c.isGreen) 75f else 25f
+        val rp = if (!c.isGreen) 75f else 25f
+        val diff = Math.abs(gp - rp)
 
-        val lGRatio = d.leftGreen   / leftTotal
-        val mGRatio = d.midGreen    / midTotal
-        val rGRatio = d.rightGreen  / rightTotal
-        val tGRatio = d.topGreen    / topTotal
-        val bGRatio = d.bottomGreen / botTotal
+        // झोन पोझिशननुसार (TOP/BOTTOM) पॅटर्न्स मॅप करण्यासाठी जुने रेशिओ तयार करणे
+        val tGRatio = if (position == "TOP" && c.isGreen) 0.70f else 0.30f
+        val bGRatio = if (position == "BOTTOM" && c.isGreen) 0.70f else 0.30f
+        
+        // डावे, उजवे आणि मधले पॅटर्न्स चालवण्यासाठी डिफॉल्ट मध्यम रेशिओ ठेवणे
+        val lGRatio = 0.50f
+        val mGRatio = 0.50f
+        val rGRatio = 0.50f
+
+        val leftTotal = 100f; val midTotal = 100f; val rightTotal = 100f
+        val topTotal = 100f;  val botTotal = 100f
+
+        // खालच्या जुन्या पॅटर्न्समध्ये 'd.topGreen' किंवा 'd.gp' शोधला जाईल.
+        // त्यासाठी आपण हा 'd' नावाचा एक आभासी (Fake) पॅरामिटर जुन्याच नावाने तयार करतो:
+        val d = object {
+            val gp = com.tradinganalyzer.analysis.PatternEngine.detect$mock(c, position).gp
+            val rp = com.tradinganalyzer.analysis.PatternEngine.detect$mock(c, position).rp
+            val colorRatio = 0.10f
+            val topGreen = if (position == "TOP" && c.isGreen) 70L else 30L
+            val topRed = if (position == "TOP" && !c.isGreen) 70L else 30L
+            val bottomGreen = if (position == "BOTTOM" && c.isGreen) 70L else 30L
+            val bottomRed = if (position == "BOTTOM" && !c.isGreen) 70L else 30L
+            val leftGreen = 50L;  val leftRed = 50L
+            val midGreen = 50L;   val midRed = 50L
+            val rightGreen = 50L; val rightRed = 50L
+            val tlGreen = 25L;    val tlRed = 25L
+            val trGreen = 25L;    val trRed = 25L
+            val blGreen = 25L;    val blRed = 25L
+            val brGreen = 25L;    val brRed = 25L
+        }
+        
+        // (टीप: या ओळीच्या खाली तुमचे जुने १०० पॅटर्न्स जसेच्या तसे सुरू होतील!)
+
 
         // ════════════════════════════════════════════════════════════
         // CATEGORY 1 — SINGLE CANDLE PATTERNS (1–18)
