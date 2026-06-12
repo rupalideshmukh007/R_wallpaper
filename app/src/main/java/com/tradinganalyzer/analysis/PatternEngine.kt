@@ -23,156 +23,191 @@ object PatternEngine {
     fun detect(c: CandleShapeData, position: String): List<PatternResult> {
         val results = mutableListOf<PatternResult>()
 
-        // ════════════════════════════════════════════════════════════
-        // STEP 1: कॉम्प्युटर व्हिजन डेटावरून जुने पिक्सेल व्हेरिएबल्स तयार करणे
-        // ════════════════════════════════════════════════════════════
-        // खालच्या १०० पॅटर्न्सना एरर येऊ नये म्हणून आपण आकारावरून तात्पुरते टक्के बनवतो
-        val gp = if (c.isGreen) 75f else 25f
-        val rp = if (!c.isGreen) 75f else 25f
-        val diff = Math.abs(gp - rp)
-
-        // झोन पोझिशननुसार (TOP/BOTTOM) पॅटर्न्स मॅप करण्यासाठी जुने रेशिओ तयार करणे
-        val tGRatio = if (position == "TOP" && c.isGreen) 0.70f else 0.30f
-        val bGRatio = if (position == "BOTTOM" && c.isGreen) 0.70f else 0.30f
-        
-        // डावे, उजवे आणि मधले पॅटर्न्स चालवण्यासाठी डिफॉल्ट मध्यम रेशिओ ठेवणे
-        val lGRatio = 0.50f
-        val mGRatio = 0.50f
-        val rGRatio = 0.50f
-
-        val leftTotal = 100f; val midTotal = 100f; val rightTotal = 100f
-        val topTotal = 100f;  val botTotal = 100f
-
-        // खालच्या जुन्या पॅटर्न्समध्ये 'd.topGreen' किंवा 'd.gp' शोधला जाईल.
-        // त्यासाठी आपण हा 'd' नावाचा एक आभासी (Fake) पॅरामिटर जुन्याच नावाने तयार करतो:
-        val d = object {
-            val gp = com.tradinganalyzer.analysis.PatternEngine.detect$mock(c, position).gp
-            val rp = com.tradinganalyzer.analysis.PatternEngine.detect$mock(c, position).rp
-            val colorRatio = 0.10f
-            val topGreen = if (position == "TOP" && c.isGreen) 70L else 30L
-            val topRed = if (position == "TOP" && !c.isGreen) 70L else 30L
-            val bottomGreen = if (position == "BOTTOM" && c.isGreen) 70L else 30L
-            val bottomRed = if (position == "BOTTOM" && !c.isGreen) 70L else 30L
-            val leftGreen = 50L;  val leftRed = 50L
-            val midGreen = 50L;   val midRed = 50L
-            val rightGreen = 50L; val rightRed = 50L
-            val tlGreen = 25L;    val tlRed = 25L
-            val trGreen = 25L;    val trRed = 25L
-            val blGreen = 25L;    val blRed = 25L
-            val brGreen = 25L;    val brRed = 25L
-        }
-        
-        // (टीप: या ओळीच्या खाली तुमचे जुने १०० पॅटर्न्स जसेच्या तसे सुरू होतील!)
-
-
-        // ════════════════════════════════════════════════════════════
-        // CATEGORY 1 — SINGLE CANDLE PATTERNS (1–18)
-        // ════════════════════════════════════════════════════════════
-
-        // 1. Doji
-        if (diff < 5f) {
-            val c = (95 - diff * 8).toInt().coerceIn(60, 90)
-            results += PatternResult("Doji", "Neutral", c, str(c), 45)
-        }
-        // 2. Dragonfly Doji
-        if (diff < 8f && bGRatio > 0.55f && tGRatio < 0.45f)
-            results += PatternResult("Dragonfly Doji", "Bullish", 67, "Medium", 52)
-        // 3. Gravestone Doji
-        if (diff < 8f && tGRatio < 0.40f && bGRatio < 0.40f && d.topRed > d.topGreen)
-            results += PatternResult("Gravestone Doji", "Bearish", 67, "Medium", 52)
-        // 4. Long-Legged Doji
-        if (diff < 6f && d.colorRatio > 0.08f)
-            results += PatternResult("Long-Legged Doji", "Neutral", 63, "Weak", 40)
-                // =====================================================================
-        // 📐 AI VISION: RULE-BASED PATTERN DETECTION (शुद्ध गणिताचे गुणोत्तर नियम)
         // =====================================================================
-        
-        // आधी कँडलच्या शरीराचे आणि शेंडीचे (Wick) अंतर मोजून घेणे
-        val bodyLength = Math.abs(c.open - c.close).coerceAtLeast(1f)
-        val upperWick  = Math.abs(c.high - Math.min(c.open, c.close))
-        val lowerWick  = Math.abs(c.low - Math.max(c.open, c.close))
+// 📐 AI VISION: RULE-BASED PATTERN DETECTION (1–20)
+// =====================================================================
 
-        // 5. Hammer (हातोडा) चा शुद्ध गणिताचा नियम
-        val isHammer = (lowerWick >= bodyLength * 2f) && 
-                       (upperWick <= bodyLength * 0.5f) && 
-                       (position == "BOTTOM")
+val bodyLength = Math.abs(c.open - c.close).coerceAtLeast(1f)
+val upperWick  = c.high - maxOf(c.open, c.close)
+val lowerWick  = minOf(c.open, c.close) - c.low
+val totalRange = (c.high - c.low).coerceAtLeast(1f)
 
-        if (isHammer) {
-            val cScore = (65 + (lowerWick / bodyLength) * 5).toInt().coerceIn(65, 90)
-            results += PatternResult("Hammer", "Bullish", cScore, str(cScore), 65)
-        }
+// 1. Doji
+if (bodyLength <= totalRange * 0.10f) {
+    results += PatternResult("Doji", "Neutral", 85, "Strong", 45)
+}
 
-        // 6. Inverted Hammer (हा जुना कोड तसाच राहील)
-        val isInvHammer = d.topGreen > d.topRed * 1.4f && d.bottomRed > d.bottomGreen && diff < 20f
-        if (isInvHammer) results += PatternResult("Inverted Hammer", "Bullish", 63, "Medium", 57)
+// 2. Dragonfly Doji
+if (
+    bodyLength <= totalRange * 0.10f &&
+    lowerWick >= totalRange * 0.70f &&
+    upperWick <= totalRange * 0.05f
+) {
+    results += PatternResult("Dragonfly Doji", "Bullish", 88, "Strong", 52)
+}
 
-        // 7. Shooting Star (तुटता तारा) चा शुद्ध गणिताचा नियम
-        val isShootingStar = (upperWick >= bodyLength * 2f) && 
-                             (lowerWick <= bodyLength * 0.5f) && 
-                             (position == "TOP")
+// 3. Gravestone Doji
+if (
+    bodyLength <= totalRange * 0.10f &&
+    upperWick >= totalRange * 0.70f &&
+    lowerWick <= totalRange * 0.05f
+) {
+    results += PatternResult("Gravestone Doji", "Bearish", 88, "Strong", 52)
+}
 
-        if (isShootingStar) {
-            val cScore = (65 + (upperWick / bodyLength) * 5).toInt().coerceIn(65, 90)
-            results += PatternResult("Shooting Star", "Bearish", cScore, str(cScore), 65)
-        }
-        // =====================================================================
-        
-        // 8. Hanging Man
-        val isHangingMan = d.topRed > d.topGreen * 1.35f && d.bottomRed > d.bottomGreen * 1.2f && d.rp > 50f
-        if (isHangingMan) results += PatternResult("Hanging Man", "Bearish", 64, "Medium", 62)
-        // 9. Marubozu Bullish
-        val isMarubozuBull = d.gp > 72f && diff > 30f && tGRatio > 0.50f && bGRatio > 0.50f
-        if (isMarubozuBull) {
-            val c = (66 + (d.gp - 70f) / 10f * 5f).toInt().coerceIn(66, 88)
-            results += PatternResult("Marubozu Bullish", "Bullish", c, str(c), 72)
-        }
-        // 10. Marubozu Bearish
-        val isMarubozuBear = d.rp > 72f && diff > 30f && tGRatio < 0.45f && bGRatio < 0.45f
-        if (isMarubozuBear) {
-            val c = (66 + (d.rp - 70f) / 10f * 5f).toInt().coerceIn(66, 88)
-            results += PatternResult("Marubozu Bearish", "Bearish", c, str(c), 72)
-        }
-        // 11. Spinning Top
-        if (diff < 12f && d.colorRatio > 0.06f && !results.any { it.patternName == "Doji" })
-            results += PatternResult("Spinning Top", "Neutral", 58, "Weak", 30)
-        // 12. Bullish Belt Hold
-        if (d.gp > 68f && lGRatio < 0.4f && rGRatio > 0.6f)
-            results += PatternResult("Bullish Belt Hold", "Bullish", 66, "Medium", 60)
-        // 13. Bearish Belt Hold
-        if (d.rp > 68f && lGRatio > 0.6f && rGRatio < 0.4f)
-            results += PatternResult("Bearish Belt Hold", "Bearish", 66, "Medium", 60)
-        // 14. Paper Umbrella
-        if (isHammer && d.gp > d.rp)
-            results += PatternResult("Paper Umbrella", "Bullish", 65, "Medium", 58)
-        // 15. Shaven Head Candle
-        if (d.topGreen > d.topRed * 1.5f && d.gp > 55f && diff < 15f)
-            results += PatternResult("Shaven Head Candle", "Bullish", 62, "Medium", 55)
-        // 16. High Wave Candle  ★NEW
-        if (diff < 8f && d.colorRatio > 0.10f && tGRatio > 0.45f && bGRatio > 0.45f)
-            results += PatternResult("High Wave Candle", "Neutral", 60, "Weak", 38)
-        // 17. Bullish Abandoned Baby  ★NEW
-        if (diff < 6f && bGRatio > 0.56f && d.blGreen > d.blRed)
-            results += PatternResult("Bullish Abandoned Baby", "Bullish", 80, "Strong", 85)
-        // 18. Bearish Abandoned Baby  ★NEW
-        if (diff < 6f && tGRatio < 0.44f && d.trRed > d.trGreen)
-            results += PatternResult("Bearish Abandoned Baby", "Bearish", 80, "Strong", 85)
+// 4. Long-Legged Doji
+if (
+    bodyLength <= totalRange * 0.10f &&
+    Math.abs(upperWick - lowerWick) < totalRange * 0.15f
+) {
+    results += PatternResult("Long-Legged Doji", "Neutral", 82, "Strong", 40)
+}
 
-        // ════════════════════════════════════════════════════════════
-        // CATEGORY 2 — TWO CANDLE PATTERNS (19–36)
-        // ════════════════════════════════════════════════════════════
+// 5. Hammer
+val isHammer =
+    (lowerWick >= bodyLength * 2f) &&
+    (upperWick <= bodyLength * 0.5f) &&
+    (position == "BOTTOM")
 
-        // 19. Bullish Engulfing
-        val isBullEngulf = d.gp > 65f && diff > 18f && lGRatio < 0.45f && rGRatio > 0.58f
-        if (isBullEngulf) {
-            val c = (66 + diff / 3f).toInt().coerceIn(66, 88)
-            results += PatternResult("Bullish Engulfing", "Bullish", c, str(c), 80)
-        }
-        // 20. Bearish Engulfing
-        val isBearEngulf = d.rp > 65f && diff > 18f && lGRatio > 0.55f && rGRatio < 0.42f
-        if (isBearEngulf) {
-            val c = (66 + diff / 3f).toInt().coerceIn(66, 88)
-            results += PatternResult("Bearish Engulfing", "Bearish", c, str(c), 80)
-        }
+if (isHammer) {
+    results += PatternResult("Hammer", "Bullish", 86, "Strong", 65)
+}
+
+// 6. Inverted Hammer
+val isInvHammer =
+    (upperWick >= bodyLength * 2f) &&
+    (lowerWick <= bodyLength * 0.5f) &&
+    (position == "BOTTOM")
+
+if (isInvHammer) {
+    results += PatternResult("Inverted Hammer", "Bullish", 86, "Strong", 57)
+}
+
+// 7. Shooting Star
+val isShootingStar =
+    (upperWick >= bodyLength * 2f) &&
+    (lowerWick <= bodyLength * 0.5f) &&
+    (position == "TOP")
+
+if (isShootingStar) {
+    results += PatternResult("Shooting Star", "Bearish", 86, "Strong", 65)
+}
+
+// 8. Hanging Man
+val isHangingMan =
+    (lowerWick >= bodyLength * 2f) &&
+    (upperWick <= bodyLength * 0.5f) &&
+    (position == "TOP")
+
+if (isHangingMan) {
+    results += PatternResult("Hanging Man", "Bearish", 86, "Strong", 62)
+}
+
+// 9. Marubozu Bullish
+if (
+    c.isGreen &&
+    bodyLength >= totalRange * 0.90f
+) {
+    results += PatternResult("Marubozu Bullish", "Bullish", 90, "Strong", 72)
+}
+
+// 10. Marubozu Bearish
+if (
+    !c.isGreen &&
+    bodyLength >= totalRange * 0.90f
+) {
+    results += PatternResult("Marubozu Bearish", "Bearish", 90, "Strong", 72)
+}
+
+// 11. Spinning Top
+if (
+    bodyLength in (totalRange * 0.15f)..(totalRange * 0.40f) &&
+    Math.abs(upperWick - lowerWick) < totalRange * 0.15f
+) {
+    results += PatternResult("Spinning Top", "Neutral", 75, "Medium", 30)
+}
+
+// 12. Bullish Belt Hold
+if (
+    c.isGreen &&
+    bodyLength >= totalRange * 0.75f &&
+    lowerWick <= totalRange * 0.05f &&
+    position == "BOTTOM"
+) {
+    results += PatternResult("Bullish Belt Hold", "Bullish", 88, "Strong", 60)
+}
+
+// 13. Bearish Belt Hold
+if (
+    !c.isGreen &&
+    bodyLength >= totalRange * 0.75f &&
+    upperWick <= totalRange * 0.05f &&
+    position == "TOP"
+) {
+    results += PatternResult("Bearish Belt Hold", "Bearish", 88, "Strong", 60)
+}
+
+// 14. Paper Umbrella
+if (
+    (isHammer || isHangingMan) &&
+    c.isGreen
+) {
+    results += PatternResult("Paper Umbrella", "Bullish", 84, "Strong", 58)
+}
+
+// 15. Shaven Head Candle
+if (
+    upperWick <= totalRange * 0.02f &&
+    bodyLength >= totalRange * 0.50f &&
+    c.isGreen
+) {
+    results += PatternResult("Shaven Head Candle", "Bullish", 82, "Strong", 55)
+}
+
+// 16. High Wave Candle
+if (
+    bodyLength <= totalRange * 0.25f &&
+    upperWick >= totalRange * 0.35f &&
+    lowerWick >= totalRange * 0.35f
+) {
+    results += PatternResult("High Wave Candle", "Neutral", 78, "Medium", 38)
+}
+
+// 17. Bullish Abandoned Baby
+if (
+    bodyLength <= totalRange * 0.10f &&
+    position == "BOTTOM"
+) {
+    results += PatternResult("Bullish Abandoned Baby", "Bullish", 80, "Strong", 85)
+}
+
+// 18. Bearish Abandoned Baby
+if (
+    bodyLength <= totalRange * 0.10f &&
+    position == "TOP"
+) {
+    results += PatternResult("Bearish Abandoned Baby", "Bearish", 80, "Strong", 85)
+}
+
+// 19. Bullish Engulfing
+val isBullEngulf =
+    c.isGreen &&
+    bodyLength >= totalRange * 0.70f &&
+    position == "BOTTOM"
+
+if (isBullEngulf) {
+    results += PatternResult("Bullish Engulfing", "Bullish", 88, "Strong", 80)
+}
+
+// 20. Bearish Engulfing
+val isBearEngulf =
+    !c.isGreen &&
+    bodyLength >= totalRange * 0.70f &&
+    position == "TOP"
+
+if (isBearEngulf) {
+    results += PatternResult("Bearish Engulfing", "Bearish", 88, "Strong", 80)
+}
         // 21. Bullish Harami
         val lTotal = d.leftGreen + d.leftRed
         val mTotal = d.midGreen  + d.midRed
