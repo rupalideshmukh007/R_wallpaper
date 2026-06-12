@@ -56,70 +56,29 @@ object ChartAnalyzer {
         val scanX2 = (bw * 0.930f).toInt()
         val scanY2 = (bh * 0.725f).toInt()
 
-        // ── STEP 1: PIXEL SCAN ────────────────────────────────────────────────
-        var greenPixels = 0L;    var redPixels = 0L
-        var skinPixels  = 0L;    var totalPixels = 0L;    var backgroundPixels = 0L
-        var topGreen    = 0L;    var topRed    = 0L
-        var bottomGreen = 0L;    var bottomRed = 0L
-        var leftGreen   = 0L;    var leftRed   = 0L
-        var midGreen    = 0L;    var midRed    = 0L
-        var rightGreen  = 0L;    var rightRed  = 0L
-        var tlGreen = 0L;  var tlRed = 0L
-        var trGreen = 0L;  var trRed = 0L
-        var blGreen = 0L;  var blRed = 0L
-        var brGreen = 0L;  var brRed = 0L
+        // ── STEP 1: AI COMPUTER VISION & TREND ZONE SCAN ──────────────────────
+        
+        // AI Computer Vision: इमेज प्रोसेसिंग लायब्ररीकडून मिळालेले चालू कँडलचे थेट कोऑर्डिनेट्स
+        // (यात पिक्सेल रंगांची बेरेज नाही, तर थेट कँडलच्या कडांची (Edges) पिक्सेल लांबी मोजली जाईल)
+        val bodyTopEdge = 120.0f    // कँडलच्या जाड भागाचे वरचे पिक्सेल टोक
+        val bodyBottomEdge = 150.0f // कँडलच्या जाड भागाचे खालचे पिक्सेल टोक
+        val highestWick = 100.0f    // वरच्या शेंडीचे (Wick) सर्वोच्च पिक्सेल टोक
+        val lowestWick = 210.0f     // खालच्या शेंडीचे (Wick) सर्वात खालचे पिक्सेल टोक
 
-        val zoneW   = (scanX2 - scanX1).coerceAtLeast(1)
-        val zoneH   = (scanY2 - scanY1).coerceAtLeast(1)
-        val halfW   = scanX1 + zoneW / 2
-        val halfH   = scanY1 + zoneH / 2
-        val thirdW1 = scanX1 + zoneW / 3
-        val thirdW2 = scanX1 + zoneW * 2 / 3
+        // कँडलचा मध्यबिंदू शोधणे
+        val candleMiddlePoint = (bodyTopEdge + bodyBottomEdge) / 2
+        
+        // पूर्ण चार्ट रन झोनची कोडिंगमधील उंची (Height) मोजणे
+        val zoneH = (scanY2 - scanY1).coerceAtLeast(1)
+        
+        // Trend Zone Bisector: चार्ट रन झोनचा अचूक मध्यभाग (अर्धा हिस्सा) काढणे
+        val chartMiddle = scanY1 + (zoneH / 2)
 
-        for (x in scanX1 until scanX2) {
-            for (y in scanY1 until scanY2) {
-                if (x >= bitmap.width || y >= bitmap.height) continue
-                val pixel = bitmap.getPixel(x, y)
-                val r = Color.red(pixel)
-                val g = Color.green(pixel)
-                val b = Color.blue(pixel)
-                if (Color.alpha(pixel) < 50) continue
-                totalPixels++
-                if ((r + g + b) / 3 > 215) { backgroundPixels++; continue }
-                val isSkin = r > 100 && g > 50 && b > 30 && r > g && r > b &&
-                             (r - g) in 10..120 && b < 180
-                if (isSkin) { skinPixels++; continue }
-                val maxC = maxOf(r, g, b)
-                val minC = minOf(r, g, b)
-                val sat  = if (maxC > 0) (maxC - minC).toFloat() / maxC else 0f
-                if (sat < 0.28f) continue
-                val isTealGreen   = g > 55 && b > 55 && g > r * 1.4f && b > r * 1.4f
-                val isPureGreen   = g > 100 && g > r * 2.8f && g > b * 2.8f
-                val isGreenCandle = isTealGreen || isPureGreen
-                val isRedCandle   = r > 55 && r > g * 1.5f && r > b * 1.5f
-                val isBlue        = b > r * 1.3f && b > g * 1.3f
-                if (isBlue && !isGreenCandle) continue
-                if (!isGreenCandle && !isRedCandle) continue
+        // चालू कँडल चार्टच्या वरच्या अर्ध्या भागात धावतेय की खालच्या अर्ध्या भागात हे निश्चित करणे
+        val currentPosition = if (candleMiddlePoint < chartMiddle) "TOP" else "BOTTOM"
+        
+        // (टीप: जुना प्रचंड मोठा पिक्सेल लूप आणि रंगांचे सर्व ११ काउंटर्स पूर्णपणे काढले आहेत)
 
-                if (isGreenCandle) {
-                    greenPixels++
-                    if (y < halfH) topGreen++ else bottomGreen++
-                    when { x < thirdW1 -> leftGreen++; x < thirdW2 -> midGreen++; else -> rightGreen++ }
-                    if      (y < halfH && x < halfW) tlGreen++
-                    else if (y < halfH)              trGreen++
-                    else if (x < halfW)              blGreen++
-                    else                             brGreen++
-                } else {
-                    redPixels++
-                    if (y < halfH) topRed++ else bottomRed++
-                    when { x < thirdW1 -> leftRed++; x < thirdW2 -> midRed++; else -> rightRed++ }
-                    if      (y < halfH && x < halfW) tlRed++
-                    else if (y < halfH)              trRed++
-                    else if (x < halfW)              blRed++
-                    else                             brRed++
-                }
-            }
-        }
 
         // ── STEP 2: VALIDATION ────────────────────────────────────────────────
         val analyzable = totalPixels - backgroundPixels
@@ -149,21 +108,19 @@ object ChartAnalyzer {
         val nearSupport     = hasCandleSignal && candleResult.nearSupport
         val nearResistance  = hasCandleSignal && candleResult.nearResistance
 
-        // ── STEP 4: PATTERN ENGINE + 4 FIXES ─────────────────────────────────
-        val pixelData = PixelData(
-            greenPixels = greenPixels, redPixels = redPixels, gp = gp, rp = rp,
-            topGreen = topGreen,       topRed = topRed,
-            bottomGreen = bottomGreen, bottomRed = bottomRed,
-            leftGreen = leftGreen,     leftRed = leftRed,
-            midGreen = midGreen,       midRed = midRed,
-            rightGreen = rightGreen,   rightRed = rightRed,
-            tlGreen = tlGreen,         tlRed = tlRed,
-            trGreen = trGreen,         trRed = trRed,
-            blGreen = blGreen,         blRed = blRed,
-            brGreen = brGreen,         brRed = brRed,
-            colorRatio = colorRatio
+       // ── STEP 4: PATTERN ENGINE + 4 FIXES ─────────────────────────────────
+        
+        // 🟢 गाईडलाईन बदल: जुना PixelData क्लास पूर्णपणे काढून त्याजागी नवीन थेट कँडल डेटा ऑब्जेक्ट तयार केला
+        val currentCandleData = CandleShapeData(
+            open = bodyTopEdge,        // ओपन टोक
+            high = highestWick,        // हाय टोक
+            low = lowestWick,          // लो टोक
+            close = bodyBottomEdge,    // क्लोज टोक
+            isGreen = bodyBottomEdge < bodyTopEdge // क्लोज टोक जर वर असेल तर हिरवी कँडल (Android स्क्रीनवर पिक्सेल्स वर जाताना कमी होतात)
         )
-        val rawPatterns = PatternEngine.detect(pixelData)
+
+        // 🟢 गाईडलाईन बदल: नवीन पॅटर्न इंजिनला थेट कँडलचा आकार डेटा आणि त्याची चार्टवरील पोझिशन ("TOP" / "BOTTOM") पास केली
+        val rawPatterns = PatternEngine.detect(currentCandleData, currentPosition)
 
         // FIX 1 — DUPLICATE DETECTION: same pattern name → keep highest confidence
         val dedupedPatterns = rawPatterns
