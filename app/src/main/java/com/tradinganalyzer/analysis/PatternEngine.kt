@@ -389,93 +389,137 @@ if (
         // CATEGORY 3 — THREE CANDLE PATTERNS (41–61)
         // ════════════════════════════════════════════════════════════
 
-        // 41. Morning Star
-        val isMorningStar = lGRatio < 0.45f && mGRatio > 0.48f && rGRatio > 0.55f
-        if (isMorningStar) results += PatternResult("Morning Star", "Bullish", 77, "Strong", 83)
+                // 41. Morning Star
+        if (c.isGreen && bodyLength >= totalRange * 0.55f && position == "BOTTOM") {
+            results += PatternResult("Morning Star", "Bullish", 77, "Strong", 83)
+        }
+
         // 42. Evening Star
-        val isEveningStar = lGRatio > 0.55f && mGRatio < 0.52f && rGRatio < 0.45f
-        if (isEveningStar) results += PatternResult("Evening Star", "Bearish", 77, "Strong", 83)
+        if (!c.isGreen && bodyLength >= totalRange * 0.55f && position == "TOP") {
+            results += PatternResult("Evening Star", "Bearish", 77, "Strong", 83)
+        }
+
         // 43. Morning Doji Star
-        if (isMorningStar && diff < 6f)
+        if (bodyLength <= totalRange * 0.15f && position == "BOTTOM") {
             results += PatternResult("Morning Doji Star", "Bullish", 82, "Strong", 87)
+        }
+
         // 44. Evening Doji Star
-        if (isEveningStar && diff < 6f)
+        if (bodyLength <= totalRange * 0.15f && position == "TOP") {
             results += PatternResult("Evening Doji Star", "Bearish", 82, "Strong", 87)
+        }
+
         // 45. Three White Soldiers
-        val isThreeWhite = lGRatio > 0.52f && mGRatio > lGRatio && rGRatio > mGRatio && d.gp > 62f
-        if (isThreeWhite) {
-            val c = (72 + (d.gp - 62f) / 2f).toInt().coerceIn(72, 91)
-            results += PatternResult("Three White Soldiers", "Bullish", c, str(c), 90)
+        if (c.isGreen && bodyLength >= totalRange * 0.65f && upperWick <= totalRange * 0.15f) {
+            results += PatternResult("Three White Soldiers", "Bullish", 85, "Strong", 90)
         }
+
         // 46. Three Black Crows
-        val isThreeCrows = lGRatio < 0.48f && mGRatio < lGRatio && rGRatio < mGRatio && d.rp > 62f
-        if (isThreeCrows) {
-            val c = (72 + (d.rp - 62f) / 2f).toInt().coerceIn(72, 91)
-            results += PatternResult("Three Black Crows", "Bearish", c, str(c), 90)
+        if (!c.isGreen && bodyLength >= totalRange * 0.65f && lowerWick <= totalRange * 0.15f) {
+            results += PatternResult("Three Black Crows", "Bearish", 85, "Strong", 90)
         }
+
         // 47. Three Inside Up
-        if (lGRatio < 0.43f && mGRatio > 0.52f && rGRatio > 0.58f)
+        if (c.isGreen && bodyLength >= totalRange * 0.60f && position == "BOTTOM") {
             results += PatternResult("Three Inside Up", "Bullish", 73, "Strong", 76)
+        }
+
         // 48. Three Inside Down
-        if (lGRatio > 0.57f && mGRatio < 0.48f && rGRatio < 0.42f)
+        if (!c.isGreen && bodyLength >= totalRange * 0.60f && position == "TOP") {
             results += PatternResult("Three Inside Down", "Bearish", 73, "Strong", 76)
+        }
+
         // 49. Three Outside Up
-        if (lGRatio < 0.4f && isBullEngulf && rGRatio > 0.55f)
+        if (c.isGreen && bodyLength >= totalRange * 0.70f && position == "BOTTOM") {
             results += PatternResult("Three Outside Up", "Bullish", 75, "Strong", 78)
+        }
+
         // 50. Three Outside Down
-        if (lGRatio > 0.6f && isBearEngulf && rGRatio < 0.45f)
+        if (!c.isGreen && bodyLength >= totalRange * 0.70f && position == "TOP") {
             results += PatternResult("Three Outside Down", "Bearish", 75, "Strong", 78)
+        }
+
         // 51. Three Stars in the South
-        if (isThreeCrows && d.bottomGreen > d.bottomRed)
+        if (!c.isGreen && lowerWick >= bodyLength * 1.2f && position == "BOTTOM") {
             results += PatternResult("Three Stars in the South", "Bullish", 70, "Medium", 72)
+        }
+
         // 52. Advance Block
-        if (lGRatio > 0.55f && mGRatio > 0.5f && rGRatio > 0.45f && rGRatio < mGRatio)
+        if (c.isGreen && upperWick >= bodyLength * 1.2f && position == "TOP") {
             results += PatternResult("Advance Block", "Bearish", 65, "Medium", 62)
+        }
+
         // 53. Deliberation Pattern
-        if (isThreeWhite && diff < 10f && rGRatio < mGRatio)
+        if (c.isGreen && bodyLength <= totalRange * 0.30f && position == "TOP") {
             results += PatternResult("Deliberation Pattern", "Neutral", 63, "Weak", 55)
+        }
+
         // 54. Tri-Star
-        if (diff < 5f && lGRatio in 0.44f..0.56f && mGRatio in 0.44f..0.56f && rGRatio in 0.44f..0.56f) {
-            val type = if (d.gp >= d.rp) "Bullish" else "Bearish"
+        if (bodyLength <= totalRange * 0.10f) {
+            val type = if (position == "BOTTOM") "Bullish" else "Bearish"
             results += PatternResult("Tri-Star", type, 72, "Strong", 74)
         }
-        // 55. Upside Gap Two Crows
-        if (d.trRed > d.trGreen && d.brRed > d.brGreen && tGRatio > 0.5f && lGRatio > 0.5f)
-            results += PatternResult("Upside Gap Two Crows", "Bearish", 68, "Medium", 65)
-        // 56. Rising Three Methods  ★NEW
-        if (lGRatio > 0.60f && mGRatio < 0.48f && rGRatio > 0.62f && d.gp > 60f)
-            results += PatternResult("Rising Three Methods", "Bullish", 76, "Strong", 82)
-        // 57. Falling Three Methods  ★NEW
-        if (lGRatio < 0.40f && mGRatio > 0.52f && rGRatio < 0.38f && d.rp > 60f)
-            results += PatternResult("Falling Three Methods", "Bearish", 76, "Strong", 82)
-        // 58. Three Line Strike Bullish  ★NEW
-        if (isThreeCrows && rGRatio > 0.65f && diff > 20f)
-            results += PatternResult("Three Line Strike Bullish", "Bullish", 74, "Strong", 79)
-        // 59. Three Line Strike Bearish  ★NEW
-        if (isThreeWhite && rGRatio < 0.35f && diff > 20f)
-            results += PatternResult("Three Line Strike Bearish", "Bearish", 74, "Strong", 79)
-        // 60. Tasuki Gap Bullish  ★NEW
-        if (lGRatio > 0.55f && d.trGreen > d.trRed && rGRatio > 0.50f && d.topGreen > d.topRed)
-            results += PatternResult("Tasuki Gap Bullish", "Bullish", 70, "Strong", 73)
-        // 61. Tasuki Gap Bearish  ★NEW
-        if (lGRatio < 0.45f && d.blRed > d.blGreen && rGRatio < 0.50f && d.bottomRed > d.bottomGreen)
-            results += PatternResult("Tasuki Gap Bearish", "Bearish", 70, "Strong", 73)
-        // 62. Ladder Bottom  ★NEW
-        if (isThreeCrows && d.brGreen > d.brRed && bGRatio > 0.52f)
-            results += PatternResult("Ladder Bottom", "Bullish", 72, "Strong", 75)
-        // 63. Breakaway Bullish  ★NEW
-        if (d.blGreen > d.blRed && d.brGreen > d.brRed && lGRatio < 0.42f && diff > 18f)
-            results += PatternResult("Breakaway Bullish", "Bullish", 71, "Strong", 74)
-        // 64. Breakaway Bearish  ★NEW
-        if (d.tlRed > d.tlGreen && d.trRed > d.trGreen && lGRatio > 0.58f && diff > 18f)
-            results += PatternResult("Breakaway Bearish", "Bearish", 71, "Strong", 74)
-        // 65. Mat Hold  ★NEW
-        if (lGRatio > 0.58f && mGRatio > 0.45f && rGRatio > 0.60f && d.gp > 58f)
-            results += PatternResult("Mat Hold", "Bullish", 73, "Strong", 77)
-        // 66. Concealing Baby Swallow  ★NEW
-        if (lGRatio < 0.42f && mGRatio < 0.45f && bGRatio > 0.55f && d.gp > d.rp)
-            results += PatternResult("Concealing Baby Swallow", "Bullish", 70, "Medium", 71)
 
+        // 55. Upside Gap Two Crows
+        if (!c.isGreen && bodyLength >= totalRange * 0.40f && position == "TOP") {
+            results += PatternResult("Upside Gap Two Crows", "Bearish", 68, "Medium", 65)
+        }
+
+        // 56. Rising Three Methods
+        if (c.isGreen && bodyLength >= totalRange * 0.60f) {
+            results += PatternResult("Rising Three Methods", "Bullish", 76, "Strong", 82)
+        }
+
+        // 57. Falling Three Methods
+        if (!c.isGreen && bodyLength >= totalRange * 0.60f) {
+            results += PatternResult("Falling Three Methods", "Bearish", 76, "Strong", 82)
+        }
+
+        // 58. Three Line Strike Bullish
+        if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM") {
+            results += PatternResult("Three Line Strike Bullish", "Bullish", 74, "Strong", 79)
+        }
+
+        // 59. Three Line Strike Bearish
+        if (!c.isGreen && bodyLength >= totalRange * 0.65f && position == "TOP") {
+            results += PatternResult("Three Line Strike Bearish", "Bearish", 74, "Strong", 79)
+        }
+
+        // 60. Tasuki Gap Bullish
+        if (c.isGreen && bodyLength >= totalRange * 0.60f && position == "BOTTOM") {
+            results += PatternResult("Tasuki Gap Bullish", "Bullish", 70, "Strong", 73)
+        }
+
+        // 61. Tasuki Gap Bearish
+        if (!c.isGreen && bodyLength >= totalRange * 0.60f && position == "TOP") {
+            results += PatternResult("Tasuki Gap Bearish", "Bearish", 70, "Strong", 73)
+        }
+
+        // 62. Ladder Bottom
+        if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM") {
+            results += PatternResult("Ladder Bottom", "Bullish", 72, "Strong", 75)
+        }
+
+        // 63. Breakaway Bullish
+        if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM") {
+            results += PatternResult("Breakaway Bullish", "Bullish", 71, "Strong", 74)
+        }
+
+        // 64. Breakaway Bearish
+        if (!c.isGreen && bodyLength >= totalRange * 0.65f && position == "TOP") {
+            results += PatternResult("Breakaway Bearish", "Bearish", 71, "Strong", 74)
+        }
+
+        // 65. Mat Hold
+        if (c.isGreen && bodyLength >= totalRange * 0.60f) {
+            results += PatternResult("Mat Hold", "Bullish", 73, "Strong", 77)
+        }
+
+        // 66. Concealing Baby Swallow
+        if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM") {
+            results += PatternResult("Concealing Baby Swallow", "Bullish", 70, "Medium", 71)
+        }
+        
         // ════════════════════════════════════════════════════════════
         // CATEGORY 4 — CHART PATTERNS (67–86)
         // ════════════════════════════════════════════════════════════
