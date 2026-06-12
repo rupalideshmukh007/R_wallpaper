@@ -4,7 +4,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-// 🎯 १. खऱ्या OHLC डेटावर आधारित कँडल मॉडेल (ChartAnalyzer सोबत परफेक्ट मॅच)
+// 🎯 खऱ्या OHLC डेटावर आधारित कँडल मॉडेल
 data class OhlcCandle(
     val open: Float,
     val high: Float,
@@ -18,7 +18,7 @@ data class OhlcCandle(
     val isGreen: Boolean get() = close > open
 }
 
-// 🎯 २. रिझल्ट स्ट्रक्चर मॉडेल
+// 🎯 रिझल्ट स्ट्रक्चर मॉडेल
 data class PatternResult(
     val patternName: String,
     val patternType: String,
@@ -29,9 +29,6 @@ data class PatternResult(
 
 class PatternEngine {
 
-    // ==========================================
-    // EMA (Exponential Moving Average)
-    // ==========================================
     fun ema(closes: List<Float>, period: Int = 21): Float {
         if (closes.isEmpty()) return 0f
         val k = 2f / (period + 1)
@@ -42,9 +39,6 @@ class PatternEngine {
         return ema
     }
 
-    // ==========================================
-    // TREND FILTER
-    // ==========================================
     fun trend(price: Float, ema: Float): String {
         return when {
             price > ema -> "UP"
@@ -53,13 +47,10 @@ class PatternEngine {
         }
     }
 
-    // ==========================================
-    // MAIN ANALYZE ENTRY (1 TO 100 PATTERNS MASTER)
-    // ==========================================
+    // 🧠 MAIN ANALYZE ENTRY (1 TO 100 PATTERNS MASTER)
     fun analyze(c: OhlcCandle, closes: List<Float>): List<PatternResult> {
         val results = mutableListOf<PatternResult>()
 
-        // 🛑 सेफ फॉलबॅक: जर लिस्टमध्ये ५ कॅन्डल्स नसतील, तर तात्पुरत्या सेफ व्हॅल्यूज तयार करा
         val finalCloses = if (closes.size < 5) {
             listOf(c.close * 0.96f, c.close * 0.97f, c.close * 0.98f, c.close * 0.99f, c.close)
         } else {
@@ -75,7 +66,6 @@ class PatternEngine {
         val up = c.upperWick
         val down = c.lowerWick
 
-        // इन-लाइन ट्रेंड गाळणी नियम
         fun allow(type: String): Boolean {
             return when (type) {
                 "BULLISH" -> tr != "DOWN"
@@ -84,14 +74,14 @@ class PatternEngine {
             }
         }
 
-        // ❌ FALSE SIGNAL FILTER LAYER (बाजार साईडवेज असताना खोटे सिग्नल्स ब्लॉक करणे)
+        // ❌ SIDEWAYS FILTER LAYER
         if (rsiVal in 45f..55f && body < range * 0.2f) {
             results += PatternResult("Sideways Market", "NEUTRAL", 50, "W", 89)
             return results
         }
 
         // ───────── SINGLE CANDLE (1–25) ─────────
-        if (body <= range * 0.1f) {
+        if (body <= range * 0.05f) { // 🎯 तू दिलेला Doji चा कडक गणिती नियम
             results += PatternResult("Doji", "NEUTRAL", 40, "S", 1)
             if (down > range * 0.6f && allow("BULLISH")) {
                 results += PatternResult("Dragonfly Doji", "BULLISH", 55, "S", 2)
@@ -101,92 +91,42 @@ class PatternEngine {
             }
         }
 
-        if (down > body * 2 && up < body && allow("BULLISH")) {
+        if (down >= body * 2f && up < range * 0.10f && allow("BULLISH")) { // 🎯 तू दिलेला Hammer चा नियम
             results += PatternResult("Hammer", "BULLISH", 75, "S", 4)
         }
 
-        if (up > body * 2 && down < body && allow("BEARISH")) {
+        if (up >= body * 2f && down < range * 0.10f && allow("BEARISH")) {
             results += PatternResult("Shooting Star", "BEARISH", 75, "S", 5)
         }
 
-        if (c.isGreen && body > range * 0.8f) {
-            results += PatternResult("Bull Marubozu", "BULLISH", 80, "S", 6)
+        if (body >= range * 0.90f) { // 🎯 तू दिलेला Marubozu चा नियम
+            if (c.isGreen) results += PatternResult("Bull Marubozu", "BULLISH", 80, "S", 6)
+            else results += PatternResult("Bear Marubozu", "BEARISH", 80, "S", 7)
         }
 
-        if (!c.isGreen && body > range * 0.8f) {
-            results += PatternResult("Bear Marubozu", "BEARISH", 80, "S", 7)
-        }
-
-        if (up < range * 0.1f && c.isGreen) {
-            results += PatternResult("Shaven Head", "BULLISH", 60, "M", 8)
-        }
-
-        if (down < range * 0.1f && !c.isGreen) {
-            results += PatternResult("Shaven Bottom", "BEARISH", 60, "M", 9)
-        }
-
-        if (body in (range * 0.15f)..(range * 0.4f)) {
-            results += PatternResult("Spinning Top", "NEUTRAL", 45, "M", 10)
-        }
+        if (up < range * 0.1f && c.isGreen) results += PatternResult("Shaven Head", "BULLISH", 60, "M", 8)
+        if (down < range * 0.1f && !c.isGreen) results += PatternResult("Shaven Bottom", "BEARISH", 60, "M", 9)
+        if (body in (range * 0.15f)..(range * 0.4f)) results += PatternResult("Spinning Top", "NEUTRAL", 45, "M", 10)
 
         // ───────── TWO CANDLE LOGIC (26–60) ─────────
-        if (c.isGreen && tr == "DOWN" && allow("BULLISH")) {
-            results += PatternResult("Bullish Engulfing", "BULLISH", 80, "S", 26)
-        }
-
-        if (!c.isGreen && tr == "UP" && allow("BEARISH")) {
-            results += PatternResult("Bearish Engulfing", "BEARISH", 80, "S", 27)
-        }
-
-        if (body < range * 0.3f && rsiVal < 30f) {
-            results += PatternResult("Bullish Harami", "BULLISH", 65, "M", 28)
-        }
-
-        if (body < range * 0.3f && rsiVal > 70f) {
-            results += PatternResult("Bearish Harami", "BEARISH", 65, "M", 29)
-        }
-
-        if (down > range * 0.5f && tr != "DOWN") {
-            results += PatternResult("Piercing Line", "BULLISH", 75, "S", 30)
-        }
-
-        if (up > range * 0.5f && tr != "UP") {
-            results += PatternResult("Dark Cloud Cover", "BEARISH", 75, "S", 31)
-        }
-
-        if (down > body && up > body) {
-            results += PatternResult("Tweezer Bottom", "BULLISH", 60, "M", 32)
-        }
-
-        if (up > body && down > body) {
-            results += PatternResult("Tweezer Top", "BEARISH", 60, "M", 33)
-        }
+        if (c.isGreen && tr == "DOWN" && body > range * 0.6f) results += PatternResult("Bullish Engulfing", "BULLISH", 80, "S", 26)
+        if (!c.isGreen && tr == "UP" && body > range * 0.6f) results += PatternResult("Bearish Engulfing", "BEARISH", 80, "S", 27)
+        if (body < range * 0.3f && rsiVal < 30f) results += PatternResult("Bullish Harami", "BULLISH", 65, "M", 28)
+        if (body < range * 0.3f && rsiVal > 70f) results += PatternResult("Bearish Harami", "BEARISH", 65, "M", 29)
+        if (down > range * 0.5f && tr != "DOWN") results += PatternResult("Piercing Line", "BULLISH", 75, "S", 30)
+        if (up > range * 0.5f && tr != "UP") results += PatternResult("Dark Cloud Cover", "BEARISH", 75, "S", 31)
+        if (down > body && up > body && allow("BULLISH")) results += PatternResult("Tweezer Bottom", "BULLISH", 60, "M", 32)
+        if (up > body && down > body && allow("BEARISH")) results += PatternResult("Tweezer Top", "BEARISH", 60, "M", 33)
 
         // ───────── THREE CANDLE / REVERSALS (61–85) ─────────
-        if (rsiVal < 30) {
-            results += PatternResult("Oversold Bounce", "BULLISH", 85, "S", 61)
-        }
-
-        if (rsiVal > 70) {
-            results += PatternResult("Overbought Drop", "BEARISH", 85, "S", 62)
-        }
-
-        if (tr == "UP" && c.isGreen) {
-            results += PatternResult("Trend Up Continuation", "BULLISH", 88, "S", 63)
-        }
-
-        if (tr == "DOWN" && !c.isGreen) {
-            results += PatternResult("Trend Down Continuation", "BEARISH", 88, "S", 64)
-        }
+        if (rsiVal < 30) results += PatternResult("Oversold Bounce", "BULLISH", 85, "S", 61)
+        if (rsiVal > 70) results += PatternResult("Overbought Drop Setup", "BEARISH", 85, "S", 62)
+        if (tr == "UP" && c.isGreen) results += PatternResult("Trend Up Continuation", "BULLISH", 88, "S", 63)
+        if (tr == "DOWN" && !c.isGreen) results += PatternResult("Trend Down Continuation", "BEARISH", 88, "S", 64)
 
         // ───────── BREAKOUT LAYER (86–100) ─────────
-        if (body > range * 0.7f) {
-            results += PatternResult("Breakout Candle", "NEUTRAL", 70, "M", 86)
-        }
-
-        if (rsiVal in 45f..55f) {
-            results += PatternResult("Sideways Market", "NEUTRAL", 55, "W", 89)
-        }
+        if (body > range * 0.7f && rsiVal > 55) results += PatternResult("Breakout Candle", "BULLISH", 70, "M", 86)
+        if (body > range * 0.7f && rsiVal < 45) results += PatternResult("Breakdown Candle", "BEARISH", 70, "M", 87)
 
         if (results.isEmpty()) {
             results += PatternResult("No Clear Pattern", "NEUTRAL", 40, "W", 100)
@@ -195,18 +135,15 @@ class PatternEngine {
         return results
     }
 
-    // 🎯 फिक्स: या सर्व गोष्टी आपण companion object मध्ये टाकल्यात जेणेकरून ChartAnalyzer ला डायरेक्ट स्टॅटिक मिळतील
     companion object {
         fun rsi(closes: List<Float>, period: Int = 14): Float {
             if (closes.size < 2) return 50f
             var gain = 0f
             var loss = 0f
-
             for (i in 1 until closes.size) {
                 val diff = closes[i] - closes[i - 1]
                 if (diff >= 0) gain += diff else loss += abs(diff)
             }
-
             val rs = if (loss == 0f) 100f else gain / loss
             return 100 - (100 / (1 + rs))
         }
