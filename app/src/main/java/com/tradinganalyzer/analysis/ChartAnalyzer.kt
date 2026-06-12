@@ -3,8 +3,6 @@ package com.tradinganalyzer.analysis
 import android.graphics.Bitmap
 import android.graphics.Color
 import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
 
 data class AnalysisResult(
     val isValidChart: Boolean,
@@ -45,7 +43,8 @@ data class AnalysisResult(
     val goldenCross: Boolean = false,
     val deathCross: Boolean = false,
     val patternsFound: List<PatternResult> = emptyList(),
-    val currentPosition: String = ""
+    val currentPosition: String = "",
+    val rightSidePixelBox: String = "" // 🎯 उजव्या बाजूच्या बॉक्ससाठी नवीन व्हेरिएबल
 )
 
 object ChartAnalyzer {
@@ -55,9 +54,7 @@ object ChartAnalyzer {
         val bw = bitmap.width
         val bh = bitmap.height
 
-        // ─────────────────────────────────────────────────────────────────────
-        // 👁️ 1. IMAGE PRE-PROCESSING & CROP BOUNDS (कोऑर्डिनेट मॅपिंग क्षेत्र)
-        // ─────────────────────────────────────────────────────────────────────
+        // 🎯 IMAGE PRE-PROCESSING Bounds
         val scanX1 = (bw * 0.115f).toInt()
         val scanY1 = (bh * 0.120f).toInt()
         val scanX2 = (bw * 0.930f).toInt()
@@ -66,7 +63,7 @@ object ChartAnalyzer {
         val zoneH = (scanY2 - scanY1).coerceAtLeast(1)
         val chartMiddle = scanY1 + (zoneH / 2)
 
-        // 📐 COORDINATE MAPPING VARIABLES (कॅन्डलच्या कडा शोधण्यासाठी)
+        // COORDINATE MAPPING VARIABLES
         var topWickY = scanY2.toFloat()
         var bottomWickY = scanY1.toFloat()
         var bodyTopY = scanY2.toFloat()
@@ -75,7 +72,7 @@ object ChartAnalyzer {
         var greenEdgesDetected = 0
         var redEdgesDetected = 0
 
-        // ── EDGE DETECTION THRESHOLDING (पिक्सेल संख्या नाही, फक्त कडांचे स्थान मोजणे) ──
+        // ── EDGE DETECTION THRESHOLDING ──
         for (x in scanX1 until scanX2 step 4) {
             for (y in scanY1 until scanY2 step 4) {
                 val pixel = bitmap.getPixel(x, y)
@@ -83,14 +80,11 @@ object ChartAnalyzer {
                 val g = Color.green(pixel)
                 val b = Color.blue(pixel)
 
-                // 🟢 Canny/Thresholding - शुद्ध हिरव्या आणि लाल कँडलच्या कडा मॅप करणे
                 val isGreenEdge = (g > r * 1.2 && g > b * 1.2 && g > 50)
                 val isRedEdge = (r > g * 1.2 && r > b * 1.2 && r > 50)
 
                 if (isGreenEdge || isRedEdge) {
                     val currentY = y.toFloat()
-                    
-                    // High/Low Wick चे कोऑर्डिनेट्स लॉक करणे
                     if (currentY < topWickY) topWickY = currentY
                     if (currentY > bottomWickY) bottomWickY = currentY
 
@@ -108,66 +102,37 @@ object ChartAnalyzer {
         }
 
         val totalEdges = greenEdgesDetected + redEdgesDetected
-
-        // 🚨 Safety Check: जर इमेज ब्लँक असेल किंवा कडा सापडल्या नाहीत
         if (totalEdges <= 0) {
-            return AnalysisResult(
-                isValidChart = false,
-                notChartReason = "❌ Chart कडा अस्पष्ट आहेत. क्लिअर स्क्रीनशॉट अपलोड करा."
-            )
+            return AnalysisResult(isValidChart = false, notChartReason = "❌ Chart कडा अस्पष्ट आहेत.")
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // 📐 2. OHLC EXTRACTION (कोऑर्डिनेट्सवरून काढलेला गणिती रेशो)
-        // ─────────────────────────────────────────────────────────────────────
+        // 📐 OHLC EXTRACTION MATH
         val isGreenCandle = greenEdgesDetected > redEdgesDetected
-        val openPrice: Float
-        val closePrice: Float
+        val openPrice = if (isGreenCandle) bodyBottomY else bodyTopY
+        val closePrice = if (isGreenCandle) bodyTopY else bodyBottomY
 
-        if (isGreenCandle) {
-            openPrice = bodyBottomY  // हिरव्या कँडलचा ओपन खाली असतो
-            closePrice = bodyTopY    // क्लोज वर असतो
-        } else {
-            openPrice = bodyTopY    // लाल कँडलचा ओपन वर असतो
-            closePrice = bodyBottomY // क्लोज खाली असतो
-        }
-
-        val extractedCandle = OhlcCandle(
-            open = openPrice,
-            high = topWickY,
-            low = bottomWickY,
-            close = closePrice
-        )
-
-        // कँडलची चार्टवरील मुख्य पोझिशन ओळखणे (AI Position Detection)
+        val extractedCandle = OhlcCandle(open = openPrice, high = topWickY, low = bottomWickY, close = closePrice)
         val candleCenter = (topWickY + bottomWickY) / 2f
         val currentPosition = if (candleCenter < chartMiddle) "TOP" else "BOTTOM"
 
-        // ── STEP 3: CANDLE ENGINE COMPATIBILITY ──
-        val candleResult = CandleEngine.analyze(bitmap, scanX1, scanY1, scanX2, scanY2)
-        val hasCandleSignal = candleResult.candleCount >= 3
-
-        // ─────────────────────────────────────────────────────────────────────
-        // 🧠 3. RULE-BASED AI PATTERN ENGINE ANALYSIS (१००% पॅटर्न डायरेक्शन)
-        // ─────────────────────────────────────────────────────────────────────
+        // 🧠 RUN PATTERN ENGINE
         val currentTrend = if (isGreenCandle) "UP" else "DOWN"
         val mockCloses = listOf(closePrice * 0.97f, closePrice * 0.98f, closePrice * 0.99f, closePrice)
         val rsiValue = PatternEngine.rsi(mockCloses).toInt().coerceIn(10, 90)
 
-        // गणिती नियमांचे इंजिन रन करणे
         val rawPatterns = PatternEngine().analyze(extractedCandle, currentTrend, rsiValue.toFloat())
-
-        // डुप्लिकेट पॅटर्न्स गाळणे
+        
+        // सर्वच्या सर्व पॅटर्न्स दाखवण्यासाठी युनिक ग्रुपिंग करणे
         val scoredPatterns = rawPatterns
             .groupBy { it.patternName }
             .map { it.value.maxByOrNull { p -> p.confidence }!! }
 
         val hasPatterns = scoredPatterns.isNotEmpty()
 
-        // पॅटर्नच्या बहुमतावरून फायनल सिग्नलची दिशा ठरवणे
         val bullishPatterns = scoredPatterns.filter { it.patternType == "BULLISH" }
         val bearishPatterns = scoredPatterns.filter { it.patternType == "BEARISH" }
 
+        // 🎯 निकाल: केवळ पॅटर्नच्या बहुमतावरून एकच अंतिम सिग्नल!
         val signal: String
         val confidence: Int
         val triggerReason: String
@@ -176,117 +141,68 @@ object ChartAnalyzer {
             signal = "BUY"
             val topBull = bullishPatterns.maxByOrNull { it.confidence }
             confidence = topBull?.confidence ?: 75
-            triggerReason = topBull?.patternName ?: "Mathematical Bullish Edge"
+            triggerReason = topBull?.patternName ?: "Bullish Dominance"
         } else if (bearishPatterns.size > bullishPatterns.size) {
             signal = "SELL"
             val topBear = bearishPatterns.maxByOrNull { it.confidence }
             confidence = topBear?.confidence ?: 75
-            triggerReason = topBear?.patternName ?: "Mathematical Bearish Edge"
+            triggerReason = topBear?.patternName ?: "Bearish Dominance"
         } else {
             signal = if (isGreenCandle) "BUY" else "SELL"
             confidence = 60
-            triggerReason = "OHLC Trend Continuation"
+            triggerReason = "OHLC Neutral Trend"
         }
 
-        // ── STEP 4: DISPLAY PERCENTAGE LOGIC ──
-        val displayBuyPct = if (signal == "BUY") 50f + (confidence / 2f) else 50f - (confidence / 2f)
-        val displaySellPct = 100f - displayBuyPct
-
-        // ── STEP 5: LABELS & LABELS GENERATION ──
-        val trend = "Trend: $currentTrend ($currentPosition)"
-        val patternDisplay = PatternEngine.formatDisplay(scoredPatterns, topN = 3)
-
-        val rsiInfo = "RSI $rsiValue — " + if (rsiValue >= 70) "Overbought" else if (rsiValue <= 30) "Oversold" else "Normal Zone"
-        val zoneArea = zoneH * (scanX2 - scanX1).coerceAtLeast(1)
-        val colorRatio = totalEdges.toFloat() / (zoneArea / 16).coerceAtLeast(1)
-        val volumeInfo = if (colorRatio > 0.12f) "🔥 High Volume" else "⚡ Medium Volume"
-
-        val confidenceLabel = when {
-            confidence >= 85 -> "Very Strong"
-            confidence >= 70 -> "Strong"
-            confidence >= 55 -> "Medium"
-            else -> "Weak"
+        // ── 📊 ⚙️ RIGHT SIDE PIXEL CALCULATION BOX (उजव्या बाजूचा सेपरेट बॉक्स डेटा) ──
+        val rightSidePixelBox = buildString {
+            appendLine("📐 [ PIXEL CALCULATION BOX ]")
+            appendLine("• Green Pixels Matched: $greenEdgesDetected")
+            appendLine("• Red Pixels Matched: $redEdgesDetected")
+            appendLine("• Raw Volume Ratio: ${String.format("%.2f", totalEdges.toFloat() / bw)}")
+            appendLine("• Core Pixel Bias: ${if (greenEdgesDetected > redEdgesDetected) "BUY BIAS" else "SELL BIAS"}")
+            append("• Calculation Mode: Background Scanning")
         }
 
-        val riskLevel: String; val riskColor: String
-        when {
-            confidence <= 40 -> { riskLevel = "🔴 HIGH RISK ($confidenceLabel)"; riskColor = "#F44336" }
-            confidence <= 65 -> { riskLevel = "🟡 MEDIUM RISK ($confidenceLabel)"; riskColor = "#FF9800" }
-            confidence <= 84 -> { riskLevel = "🟢 LOW RISK ($confidenceLabel)"; riskColor = "#4CAF50" }
-            else -> { riskLevel = "⭐ VERY LOW RISK ($confidenceLabel)"; riskColor = "#2196F3" }
+        // मुख्य स्क्रीनसाठी डिस्प्ले टक्केवारी (फक्त पॅटर्न ओरिएंटेड)
+        val displayBuyPercent = if (signal == "BUY") 50f + (confidence / 2f) else 50f - (confidence / 2f)
+        val displaySellPercent = 100f - displayBuyPercent
+
+        // स्क्रीनवर एकाच वेळी दिसणारे सर्व पॅटर्न्स फॉरमॅट करणे
+        val patternDisplay = scoredPatterns.joinToString("\n") { 
+            "• ${it.patternName} (${it.patternType}) -> Conf: ${it.confidence}%" 
         }
 
         val entrySlTarget = if (signal == "BUY")
-            "✅ Entry: Above High\n🛑 SL: Below Pattern Low\n🎯 Target: Next Resistance"
+            "✅ Entry: Above High\n🛑 SL: Below Pattern Low\n🎯 Target: Resistance Zone"
         else
-            "✅ Entry: Below Low\n🛑 SL: Above Pattern High\n🎯 Target: Next Support"
+            "✅ Entry: Below Low\n🛑 SL: Above Pattern High\n🎯 Target: Support Zone"
 
-        val rrRatio = if (confidence >= 70) "✅ 1:3 (Strong)" else "⚠️ 1:2 (Medium)"
-
-        // ── WEIGHT BREAKDOWN STRING ──
-        val weightBreakdown = buildString {
-            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            appendLine("📐 AI COMPUTER VISION SETUP")
-            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            appendLine("🔍 Mapped Rule: $triggerReason")
-            appendLine("🕯️ Position   : $currentPosition")
-            appendLine("📊 Range Math : High-Low Coordinates")
-            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            append("🎯 Final Signal : $signal")
-        }
-
-        // ── SUMMARY STRING ──
         val summary = buildString {
-            appendLine("Signal: $signal  | Trigger: $triggerReason")
-            appendLine("Position: $currentPosition  | $volumeInfo")
-            appendLine("RSI: $rsiInfo")
-            appendLine()
+            appendLine("🎯 AI FINAL SIGNAL: $signal")
+            appendLine("🔍 Triggered By: $triggerReason")
+            appendLine("📈 Chart Location: $currentPosition")
             append(entrySlTarget)
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // 🎯 4. COMPLETE RETURN BLOCK (सर्व डेटा व्हेरिएबल्स सुसंगत भरले आहेत)
-        // ─────────────────────────────────────────────────────────────────────
         return AnalysisResult(
             isValidChart = true,
-            notChartReason = null,
             signal = signal,
             confidence = confidence,
             greenPercent = (greenEdgesDetected.toFloat() / totalEdges) * 100f,
             redPercent = (redEdgesDetected.toFloat() / totalEdges) * 100f,
-            displayBuyPercent = displayBuyPct,
-            displaySellPercent = displaySellPct,
+            displayBuyPercent = displayBuyPercent,
+            displaySellPercent = displaySellPercent,
             hasPatterns = hasPatterns,
-            trend = trend,
-            volumeInfo = volumeInfo,
+            trend = "Trend: $currentTrend ($currentPosition)",
             sentiment = if (signal == "BUY") "Bullish" else "Bearish",
             supportResistance = entrySlTarget,
             summary = summary,
-            investorInfo = rrRatio,
-            rsiValue = rsiValue,
-            rsiInfo = rsiInfo,
-            riskLevel = riskLevel,
-            riskColor = riskColor,
-            waitMessage = if (currentTrend == "SIDE") "⚠️ Sideways Market" else "",
             keyFactors = triggerReason,
             signalReason = triggerReason,
             detectedPatterns = scoredPatterns,
             patternDisplay = patternDisplay,
-            candleCount = candleResult.candleCount,
-            candleEngineSignal = candleResult.signal,
-            candleEngineConfidence = candleResult.confidence,
-            candleContext = candleResult.patternContext,
-            candleDetails = candleResult.detailsStr,
-            weightBreakdown = weightBreakdown,
-            closePositionStr = if (hasCandleSignal) candleResult.closePositionStr else "",
-            wickAnalysis = if (hasCandleSignal) candleResult.wickAnalysis else "",
-            currentCandleScore = if (hasCandleSignal) candleResult.currentCandleScore else 0,
-            ema200Above = if (hasCandleSignal) candleResult.ema200Above else false,
-            ema200Valid = if (hasCandleSignal) candleResult.ema200Valid else false,
-            goldenCross = if (hasCandleSignal) candleResult.goldenCross else false,
-            deathCross = if (hasCandleSignal) candleResult.deathCross else false,
-            patternsFound = scoredPatterns,
-            currentPosition = currentPosition
+            currentPosition = currentPosition,
+            rightSidePixelBox = rightSidePixelBox // 🎯 उजव्या बॉक्समध्ये डेटा पाठवला
         )
     }
 }
