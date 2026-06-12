@@ -148,7 +148,7 @@ object ChartAnalyzer {
                 else -> 1.0f
             }
 
-       // ── STEP 5: WEIGHTED SIGNAL ───────────────────────────────────────────
+               // ── STEP 5: WEIGHTED SIGNAL ───────────────────────────────────────────
         // CandleEngine 80% | PatternEngine 10% | Pixel 10%
         // Fallback (no candle + patterns): Pattern 60% + Pixel 40%
         // Fallback (no candle + no patterns): Pixel 100%
@@ -211,12 +211,19 @@ object ChartAnalyzer {
             else                                              -> "↔️ Sideways"
         }
 
-        val rsiValue = if (hasCandleSignal) candleResult.rsiEstimate
-        else when {
-            gp > 75 -> (70 + ((gp - 75) / 25 * 20)).toInt().coerceIn(70, 90)
-            gp < 25 -> (30 - ((25 - gp) / 25 * 20)).toInt().coerceIn(10, 30)
-            else    -> (30 + (gp / 100 * 40)).toInt().coerceIn(30, 70)
-        }
+        // 🎯 अंतिम रिझल्ट रिटर्न (सर्व डेटा ऑब्जेक्टमध्ये भरून बाहेर पाठवणे)
+        return AnalysisResult(
+            isValidChart = true,
+            notChartReason = null,
+            signal = signal,
+            confidence = confidence,
+            trend = trend,
+            patternsFound = scoredPatterns,
+            currentPosition = currentPosition // AI Vision ने शोधलेली TOP/BOTTOM पोझिशन
+        )
+    }
+}
+
 
         val reasons = mutableListOf<String>()
         if (hasCandleSignal) {
