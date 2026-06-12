@@ -67,17 +67,19 @@ object ChartAnalyzer {
 
 
         // ── STEP 2: VALIDATION ────────────────────────────────────────────────
-        val analyzable = totalPixels - backgroundPixels
-        if (analyzable <= 0) return AnalysisResult(
+                // ── STEP 2: VALIDATION (नवीन पिक्सेल सिस्टीमनुसार व्हॅलिडेशन) ───────────────
+        val coloredPixels = topPixelsCount + bottomPixelsCount
+        
+        // १. जर स्क्रीनशॉटमध्ये कँडलचा एकही रंग सापडला नाही (Blank Image)
+        if (coloredPixels <= 0) return AnalysisResult(
             isValidChart = false,
             notChartReason = "Image खूप light/blank आहे. Chart screenshot upload करा."
         )
-        if (skinPixels.toFloat() / analyzable > 0.15f) return AnalysisResult(
-            isValidChart = false,
-            notChartReason = "❌ हे Chart नाही!\n\nSelfie किंवा photo दिसत आहे.\nकृपया Zerodha, Upstox, TradingView chart चा screenshot upload करा."
-        )
-        val coloredPixels = greenPixels + redPixels
-        val colorRatio    = coloredPixels.toFloat() / analyzable.coerceAtLeast(1)
+
+        // २. जर कँडलचे पिक्सेल्स खूपच कमी असतील (कँडल्स सापडल्या नाहीत)
+        // एकूण झोनच्या तुलनेत जर कँडलचा रंग १.५% पेक्षा कमी असेल
+        val zoneArea = zoneH * (scanX2 - scanX1).coerceAtLeast(1)
+        val colorRatio = coloredPixels.toFloat() / zoneArea.coerceAtLeast(1)
         if (colorRatio < 0.015f) return AnalysisResult(
             isValidChart = false,
             notChartReason = "❌ Chart candles सापडले नाहीत!\nZerodha / TradingView / Upstox Candlestick chart upload करा."
