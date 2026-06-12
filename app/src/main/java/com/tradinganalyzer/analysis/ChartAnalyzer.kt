@@ -150,26 +150,36 @@ object ChartAnalyzer {
 
         // ── STEP 4: PATTERN ENGINE CALL ──
         val currentCandleData = CandleShapeData(
-            open = bodyTopEdge,
+                // ── STEP 4: PATTERN ENGINE CALL (नव्या इंजिननुसार अपडेट) ──
+        
+        // 🎯 १. शेवटच्या लाईव्ह कँडलचा अंदाज मोजणे
+        val liveCandleTop = highestWickY + (totalLength * 0.20f)
+        val liveCandleBottom = lowestWickY - (totalLength * 0.20f)
+
+        val currentCandleData = CandleShapeData(
+            open = liveCandleTop,
             high = highestWickY,
             low = lowestWickY,
             close = bodyBottomEdge,
-            isGreen = gp >= rp
+            isGreen = (candleResult.signal == "BUY")
         )
 
+        // 🎯 २. नव्या PatternEngine च्या companion object ला डायरेक्ट कॉल करणे
         val rawPatterns = PatternEngine.detect(currentCandleData, currentPosition)
 
-        // डुप्लिकेट फिल्टर
+        // ३. डुप्लिकेट फिल्टर (पॅटर्नचे नाव 'patternName' नुसार ग्रुप करणे)
         val scoredPatterns = rawPatterns
             .groupBy { it.patternName }
             .map { (_, group) -> group.maxByOrNull { it.confidence }!! }
 
         val hasPatterns = scoredPatterns.isNotEmpty()
 
-        val patternBuyCount = scoredPatterns.count { it.patternType == "Bullish" }
+        // ४. नव्या 'patternType' नुसार बुलीश काउंट मोजणे
+        val patternBuyCount = scoredPatterns.count { it.patternType == "BULLISH" || it.patternType == "Bullish" }
         val totalPatternCount = scoredPatterns.size.coerceAtLeast(1)
         val patternBuyPct = (patternBuyCount.toFloat() / totalPatternCount) * 100f
         val patternSellPct = 100f - patternBuyPct
+
 
         // ── STEP 5: WEIGHTED SIGNAL SYSTEM ──
         val candleBuyPct = if (candleResult.signal == "BUY") candleResult.confidence.toFloat() else (100f - candleResult.confidence)
