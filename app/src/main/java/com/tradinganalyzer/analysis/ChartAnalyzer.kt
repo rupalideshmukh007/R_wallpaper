@@ -76,7 +76,7 @@ object ChartAnalyzer {
         val chartMiddle = scanY1 + (zoneH / 2)
 
 
-        // ── STEP 2: VALIDATION ────────────────────────────────────────────────
+                // ── STEP 2: VALIDATION ────────────────────────────────────────────────
         // ── STEP 2: VALIDATION (नवीन पिक्सेल सिस्टीमनुसार व्हॅलिडेशन) ───────────────
         val coloredPixels = topPixelsCount + bottomPixelsCount
         
@@ -115,6 +115,18 @@ object ChartAnalyzer {
         
         val currentPosition = if (candleMiddlePoint < chartMiddle) "TOP" else "BOTTOM"
 
+        // =====================================================================
+        // 📐 टप्पा ३: FEATURE EXTRACTION (शुद्ध गणिताचा रेशो/गुणोत्तर काढणे)
+        // =====================================================================
+        // पिक्सेलची समस्या सोडवण्यासाठी कँडलच्या कडांमधील अंतर मोजणे
+        val totalLength     = Math.abs(highestWick - lowestWick).coerceAtLeast(1f)
+        val bodyLength      = Math.abs(bodyTopEdge - bodyBottomEdge).coerceAtLeast(1f)
+        
+        // Android स्क्रीनवर पिक्सेल्स वर जाताना कमी होतात, म्हणून अचूक अंतर मोजण्यासाठी Min/Max चा वापर
+        val upperWickLength = Math.abs(highestWick - Math.min(bodyTopEdge, bodyBottomEdge))
+        val lowerWickLength = Math.abs(lowestWick - Math.max(bodyTopEdge, bodyBottomEdge))
+        // =====================================================================
+
        // ── STEP 4: PATTERN ENGINE + 4 FIXES ─────────────────────────────────
         
         // 🟢 गाईडलाईन बदल: जुना PixelData क्लास पूर्णपणे काढून त्याजागी नवीन थेट कँडल डेटा ऑब्जेक्ट तयार केला
@@ -134,19 +146,8 @@ object ChartAnalyzer {
             .groupBy { it.patternName }
             .map { (_, group) -> group.maxByOrNull { it.confidence }!! }
 
-        // FIX 2 + 3 + 4 — TREND VALIDATION + SCORING FORMULA + S/R LOGIC
-        val scoredPatterns: List<PatternResult> = dedupedPatterns.map { p ->
+        // FIX 2 + 3 + 4 — TREND VALIDATION + SCORING FORMULA + S/R
 
-            // FIX 2: Trend Validation
-            val trendMultiplier: Float = when {
-                !hasCandleSignal          -> 1.0f
-                candleTrend == "Sideways" -> 1.0f
-                p.patternType == "Bullish" && candleTrend == "Bullish" -> 1.15f
-                p.patternType == "Bearish" && candleTrend == "Bearish" -> 1.15f
-                p.patternType == "Bullish" && candleTrend == "Bearish" -> 0.65f
-                p.patternType == "Bearish" && candleTrend == "Bullish" -> 0.65f
-                else -> 1.0f
-            }
 
                // ── STEP 5: WEIGHTED SIGNAL ───────────────────────────────────────────
         // CandleEngine 80% | PatternEngine 10% | Pixel 10%
