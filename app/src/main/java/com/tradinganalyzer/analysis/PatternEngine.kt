@@ -524,113 +524,155 @@ if (
         // CATEGORY 4 — CHART PATTERNS (67–86)
         // ════════════════════════════════════════════════════════════
 
-        // 67. Double Top
-        if (d.tlRed > d.tlGreen && d.trRed > d.trGreen && bGRatio > 0.54f)
-            results += PatternResult("Double Top", "Bearish", 71, "Strong", 82)
-        // 68. Double Bottom
-        if (d.blGreen > d.blRed && d.brGreen > d.brRed && tGRatio < 0.46f)
-            results += PatternResult("Double Bottom", "Bullish", 71, "Strong", 82)
-        // 69. Triple Top
-        if (d.tlRed > d.tlGreen && d.trRed > d.trGreen && mGRatio < 0.45f && d.rp > d.gp)
-            results += PatternResult("Triple Top", "Bearish", 73, "Strong", 84)
-        // 70. Triple Bottom
-        if (d.blGreen > d.blRed && d.brGreen > d.brRed && mGRatio > 0.55f && d.gp > d.rp)
-            results += PatternResult("Triple Bottom", "Bullish", 73, "Strong", 84)
-        // 71. Head and Shoulders
-        if (tGRatio < 0.42f && d.tlRed > d.tlGreen && d.trRed > d.trGreen && bGRatio > 0.52f)
-            results += PatternResult("Head and Shoulders", "Bearish", 76, "Strong", 86)
-        // 72. Inverse Head and Shoulders
-        if (bGRatio > 0.58f && d.blGreen > d.blRed && d.brGreen > d.brRed && tGRatio < 0.46f)
-            results += PatternResult("Inverse Head and Shoulders", "Bullish", 76, "Strong", 86)
-        // 73. Ascending Triangle
-        if (lGRatio < 0.45f && rGRatio > 0.56f && d.topRed > d.topGreen * 1.1f)
-            results += PatternResult("Ascending Triangle", "Bullish", 69, "Medium", 73)
-        // 74. Descending Triangle
-        if (lGRatio > 0.55f && rGRatio < 0.44f && d.bottomRed > d.bottomGreen * 1.1f)
-            results += PatternResult("Descending Triangle", "Bearish", 69, "Medium", 73)
-        // 75. Symmetrical Triangle
-        if (Math.abs(lGRatio - 0.5f) < 0.1f && Math.abs(rGRatio - 0.5f) < 0.1f && diff < 12f)
-            results += PatternResult("Symmetrical Triangle", "Neutral", 60, "Medium", 56)
-        // 76. Bull Flag
-        if (lGRatio > 0.55f && Math.abs(lGRatio - rGRatio) < 0.1f && d.gp > d.rp)
-            results += PatternResult("Bull Flag", "Bullish", 67, "Medium", 68)
-        // 77. Bear Flag
-        if (lGRatio < 0.45f && Math.abs(lGRatio - rGRatio) < 0.1f && d.rp > d.gp)
-            results += PatternResult("Bear Flag", "Bearish", 67, "Medium", 68)
-        // 78. Bull Pennant
-        if (lGRatio > 0.55f && diff < 10f && d.colorRatio > 0.08f && d.gp > d.rp)
-            results += PatternResult("Bull Pennant", "Bullish", 65, "Medium", 64)
-        // 79. Bear Pennant
-        if (lGRatio < 0.45f && diff < 10f && d.colorRatio > 0.08f && d.rp > d.gp)
-            results += PatternResult("Bear Pennant", "Bearish", 65, "Medium", 64)
-        // 80. Rising Wedge
-        if (tGRatio > 0.55f && bGRatio > 0.5f && rGRatio < lGRatio)
-            results += PatternResult("Rising Wedge", "Bearish", 67, "Medium", 70)
-        // 81. Falling Wedge
-        if (tGRatio < 0.45f && bGRatio < 0.5f && rGRatio > lGRatio)
-            results += PatternResult("Falling Wedge", "Bullish", 67, "Medium", 70)
-        // 82. Channel Up
-        if (tGRatio > 0.52f && bGRatio > 0.52f && lGRatio < rGRatio)
-            results += PatternResult("Channel Up", "Bullish", 64, "Medium", 60)
-        // 83. Channel Down
-        if (tGRatio < 0.48f && bGRatio < 0.48f && lGRatio > rGRatio)
-            results += PatternResult("Channel Down", "Bearish", 64, "Medium", 60)
-        // 84. Cup and Handle
-        if (d.blGreen > d.blRed && d.brGreen > d.brRed && mGRatio < 0.48f && d.trGreen > d.trRed)
-            results += PatternResult("Cup and Handle", "Bullish", 73, "Strong", 78)
-        // 85. Inverse Cup and Handle
-        if (d.tlRed > d.tlGreen && d.trRed > d.trGreen && mGRatio > 0.52f && d.brRed > d.brGreen)
-            results += PatternResult("Inverse Cup and Handle", "Bearish", 71, "Medium", 76)
-        // 86. Rectangle
-        if (Math.abs(lGRatio - rGRatio) < 0.08f && diff < 15f)
-            results += PatternResult("Rectangle", "Neutral", 58, "Weak", 42)
         // ════════════════════════════════════════════════════════════
-        // CATEGORY 5 — BREAKOUT & MARKET PATTERNS (87–100)
-        // ════════════════════════════════════════════════════════════
-        // 87. Breakout
-        if (d.colorRatio > 0.12f && d.gp > d.rp && diff > 20f)
-            results += PatternResult("Breakout", "Bullish", 74, "Strong", 77)
-        // 88. Breakdown
-        if (d.colorRatio > 0.12f && d.rp > d.gp && diff > 20f)
-            results += PatternResult("Breakdown", "Bearish", 74, "Strong", 77)
-        // 89. Support Bounce
-        if (bGRatio > 0.58f && d.gp > d.rp)
-            results += PatternResult("Support Bounce", "Bullish", 69, "Medium", 71)
-        // 90. Resistance Rejection
-        if (tGRatio < 0.42f && d.rp > d.gp)
-            results += PatternResult("Resistance Rejection", "Bearish", 69, "Medium", 71)
-        // 91. Trendline Breakout
-        if (lGRatio < 0.48f && rGRatio > 0.58f && d.colorRatio > 0.09f)
-            results += PatternResult("Trendline Breakout", "Bullish", 70, "Strong", 72)
-        // 92. Trendline Breakdown
-        if (lGRatio > 0.52f && rGRatio < 0.42f && d.colorRatio > 0.09f)
-            results += PatternResult("Trendline Breakdown", "Bearish", 70, "Strong", 72)
-        // 93. Retest Confirmation
-        if (diff < 10f && d.colorRatio > 0.07f && (d.blGreen > d.blRed || d.brGreen > d.brRed))
-            results += PatternResult("Retest Confirmation", "Bullish", 66, "Medium", 65)
-        // 94. Gap Up Breakout
-        if (d.topGreen > d.topRed * 1.5f && d.colorRatio > 0.10f && d.gp > d.rp)
-            results += PatternResult("Gap Up Breakout", "Bullish", 75, "Strong", 79)
-        // 95. Gap Down Breakdown
-        if (d.topRed > d.topGreen * 1.5f && d.colorRatio > 0.10f && d.rp > d.gp)
-            results += PatternResult("Gap Down Breakdown", "Bearish", 75, "Strong", 79)
-        // 96. Golden Cross Signal  ★NEW
-        if (lGRatio < 0.45f && rGRatio > 0.58f && d.gp > 60f && d.colorRatio > 0.08f && bGRatio > 0.52f)
-            results += PatternResult("Golden Cross Signal", "Bullish", 78, "Strong", 83)
-        // 97. Death Cross Signal  ★NEW
-        if (lGRatio > 0.55f && rGRatio < 0.42f && d.rp > 60f && d.colorRatio > 0.08f && tGRatio < 0.48f)
-            results += PatternResult("Death Cross Signal", "Bearish", 78, "Strong", 83)
-        // 98. Squeeze Breakout  ★NEW
-        if (d.colorRatio < 0.07f && diff < 8f && d.gp > d.rp && bGRatio > 0.52f)
-            results += PatternResult("Squeeze Breakout", "Bullish", 72, "Strong", 76)
-        // 99. Squeeze Breakdown  ★NEW
-        if (d.colorRatio < 0.07f && diff < 8f && d.rp > d.gp && tGRatio < 0.48f)
-            results += PatternResult("Squeeze Breakdown", "Bearish", 72, "Strong", 76)
-        // 100. VWAP Bounce  ★NEW
-        if (bGRatio > 0.55f && mGRatio > 0.52f && d.gp > d.rp && diff < 15f && d.colorRatio > 0.06f)
-            results += PatternResult("VWAP Bounce", "Bullish", 68, "Medium", 69)
-        return deduplicatePatterns(results).sortedByDescending { it.priorityScore }.take(20)
+// CATEGORY 4 — CHART PATTERNS (67–86)
+// ════════════════════════════════════════════════════════════
+
+// 67. Double Top
+if (!c.isGreen && bodyLength >= totalRange * 0.60f && position == "TOP")
+    results += PatternResult("Double Top", "Bearish", 71, "Strong", 82)
+
+// 68. Double Bottom
+if (c.isGreen && bodyLength >= totalRange * 0.60f && position == "BOTTOM")
+    results += PatternResult("Double Bottom", "Bullish", 71, "Strong", 82)
+
+// 69. Triple Top
+if (!c.isGreen && bodyLength >= totalRange * 0.60f && position == "TOP")
+    results += PatternResult("Triple Top", "Bearish", 73, "Strong", 84)
+
+// 70. Triple Bottom
+if (c.isGreen && bodyLength >= totalRange * 0.60f && position == "BOTTOM")
+    results += PatternResult("Triple Bottom", "Bullish", 73, "Strong", 84)
+
+// 71. Head and Shoulders
+if (!c.isGreen && bodyLength >= totalRange * 0.60f && position == "TOP")
+    results += PatternResult("Head and Shoulders", "Bearish", 76, "Strong", 86)
+
+// 72. Inverse Head and Shoulders
+if (c.isGreen && bodyLength >= totalRange * 0.60f && position == "BOTTOM")
+    results += PatternResult("Inverse Head and Shoulders", "Bullish", 76, "Strong", 86)
+
+// 73. Ascending Triangle
+if (c.isGreen && bodyLength >= totalRange * 0.50f && position == "BOTTOM")
+    results += PatternResult("Ascending Triangle", "Bullish", 69, "Medium", 73)
+
+// 74. Descending Triangle
+if (!c.isGreen && bodyLength >= totalRange * 0.50f && position == "TOP")
+    results += PatternResult("Descending Triangle", "Bearish", 69, "Medium", 73)
+
+// 75. Symmetrical Triangle
+if (bodyLength in (totalRange * 0.15f)..(totalRange * 0.35f))
+    results += PatternResult("Symmetrical Triangle", "Neutral", 60, "Medium", 56)
+
+// 76. Bull Flag
+if (c.isGreen && bodyLength >= totalRange * 0.50f && position == "BOTTOM")
+    results += PatternResult("Bull Flag", "Bullish", 67, "Medium", 68)
+
+// 77. Bear Flag
+if (!c.isGreen && bodyLength >= totalRange * 0.50f && position == "TOP")
+    results += PatternResult("Bear Flag", "Bearish", 67, "Medium", 68)
+
+// 78. Bull Pennant
+if (c.isGreen && bodyLength >= totalRange * 0.50f && position == "BOTTOM")
+    results += PatternResult("Bull Pennant", "Bullish", 65, "Medium", 64)
+
+// 79. Bear Pennant
+if (!c.isGreen && bodyLength >= totalRange * 0.50f && position == "TOP")
+    results += PatternResult("Bear Pennant", "Bearish", 65, "Medium", 64)
+
+// 80. Rising Wedge
+if (!c.isGreen && bodyLength >= totalRange * 0.65f && position == "TOP")
+    results += PatternResult("Rising Wedge", "Bearish", 67, "Medium", 70)
+
+// 81. Falling Wedge
+if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM")
+    results += PatternResult("Falling Wedge", "Bullish", 67, "Medium", 70)
+
+// 82. Channel Up
+if (c.isGreen && bodyLength >= totalRange * 0.50f && position == "BOTTOM")
+    results += PatternResult("Channel Up", "Bullish", 64, "Medium", 60)
+
+// 83. Channel Down
+if (!c.isGreen && bodyLength >= totalRange * 0.50f && position == "TOP")
+    results += PatternResult("Channel Down", "Bearish", 64, "Medium", 60)
+
+// 84. Cup and Handle
+if (c.isGreen && bodyLength >= totalRange * 0.60f && position == "BOTTOM")
+    results += PatternResult("Cup and Handle", "Bullish", 73, "Strong", 78)
+
+// 85. Inverse Cup and Handle
+if (!c.isGreen && bodyLength >= totalRange * 0.60f && position == "TOP")
+    results += PatternResult("Inverse Cup and Handle", "Bearish", 71, "Medium", 76)
+
+// 86. Rectangle
+if (bodyLength in (totalRange * 0.15f)..(totalRange * 0.35f))
+    results += PatternResult("Rectangle", "Neutral", 58, "Weak", 42)
+
+
+// ════════════════════════════════════════════════════════════
+// CATEGORY 5 — BREAKOUT & MARKET PATTERNS (87–100)
+// ════════════════════════════════════════════════════════════
+
+// 87. Breakout
+if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM")
+    results += PatternResult("Breakout", "Bullish", 74, "Strong", 77)
+
+// 88. Breakdown
+if (!c.isGreen && bodyLength >= totalRange * 0.70f && position == "BOTTOM")
+    results += PatternResult("Breakdown", "Bearish", 74, "Strong", 77)
+
+// 89. Support Bounce
+if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM")
+    results += PatternResult("Support Bounce", "Bullish", 69, "Medium", 71)
+
+// 90. Resistance Rejection
+if (!c.isGreen && bodyLength >= totalRange * 0.65f && position == "TOP")
+    results += PatternResult("Resistance Rejection", "Bearish", 69, "Medium", 71)
+
+// 91. Trendline Breakout
+if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM")
+    results += PatternResult("Trendline Breakout", "Bullish", 70, "Strong", 72)
+
+// 92. Trendline Breakdown
+if (!c.isGreen && bodyLength >= totalRange * 0.65f && position == "TOP")
+    results += PatternResult("Trendline Breakdown", "Bearish", 70, "Strong", 72)
+
+// 93. Retest Confirmation
+if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM")
+    results += PatternResult("Retest Confirmation", "Bullish", 66, "Medium", 65)
+
+// 94. Gap Up Breakout
+if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM")
+    results += PatternResult("Gap Up Breakout", "Bullish", 75, "Strong", 79)
+
+// 95. Gap Down Breakdown
+if (!c.isGreen && bodyLength >= totalRange * 0.65f && position == "TOP")
+    results += PatternResult("Gap Down Breakdown", "Bearish", 75, "Strong", 79)
+
+// 96. Golden Cross Signal
+if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM")
+    results += PatternResult("Golden Cross Signal", "Bullish", 78, "Strong", 83)
+
+// 97. Death Cross Signal
+if (!c.isGreen && bodyLength >= totalRange * 0.65f && position == "TOP")
+    results += PatternResult("Death Cross Signal", "Bearish", 78, "Strong", 83)
+
+// 98. Squeeze Breakout
+if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM")
+    results += PatternResult("Squeeze Breakout", "Bullish", 72, "Strong", 76)
+
+// 99. Squeeze Breakdown
+if (!c.isGreen && bodyLength >= totalRange * 0.65f && position == "TOP")
+    results += PatternResult("Squeeze Breakdown", "Bearish", 72, "Strong", 76)
+
+// 100. VWAP Bounce
+if (c.isGreen && bodyLength >= totalRange * 0.65f && position == "BOTTOM")
+    results += PatternResult("VWAP Bounce", "Bullish", 68, "Medium", 69)
+
+        // 🎯 अंतिम फिक्स: प्रायरिटी फॅमिली फिल्टर करून, सर्वाधिक कॉन्फिडन्स (Confidence) असलेले टॉप ३ पॅटर्न्स युझरला UI वर दाखवणे.
+        return deduplicatePatterns(results).sortedByDescending { it.confidence }.take(3)
     }
+
     fun mergedBonus(patterns: List<PatternResult>): Pair<Int, Int> {
         var buyBonus = 0; var sellBonus = 0
         for (p in patterns) {
@@ -642,11 +684,13 @@ if (
         }
         return Pair(buyBonus.coerceIn(0, 40), sellBonus.coerceIn(0, 40))
     }
+
     private fun str(confidence: Int): String = when {
         confidence >= 75 -> "Strong"
         confidence >= 62 -> "Medium"
         else             -> "Weak"
     }
+
     private fun deduplicatePatterns(list: List<PatternResult>): List<PatternResult> {
         val families = mapOf(
             "Doji"         to listOf("Doji","Dragonfly Doji","Gravestone Doji",
@@ -682,6 +726,7 @@ if (
         }
         return keep
     }
+
     fun formatDisplay(patterns: List<PatternResult>, topN: Int = 5): String {
         if (patterns.isEmpty()) return "कोणताही pattern detect झाला नाही."
         val sb = StringBuilder()
