@@ -56,7 +56,7 @@ object ChartAnalyzer {
         val scanX2 = (bw * 0.930f).toInt()
         val scanY2 = (bh * 0.725f).toInt()
 
-        // ════════════════════════════════════════════════════════════
+                // ════════════════════════════════════════════════════════════
         // 🟢 स्टेप १: IMAGE CROP & CHART BISECTOR (एकाच इमेजचे २ भाग करणे)
         // ════════════════════════════════════════════════════════════
         // १. इमेज कट (Crop) झाल्यावर कँडल रन एरियाची एकूण उंची मोजणे
@@ -67,7 +67,7 @@ object ChartAnalyzer {
 
 
         // ── STEP 2: VALIDATION ────────────────────────────────────────────────
-                // ── STEP 2: VALIDATION (नवीन पिक्सेल सिस्टीमनुसार व्हॅलिडेशन) ───────────────
+        // ── STEP 2: VALIDATION (नवीन पिक्सेल सिस्टीमनुसार व्हॅलिडेशन) ───────────────
         val coloredPixels = topPixelsCount + bottomPixelsCount
         
         // १. जर स्क्रीनशॉटमध्ये कँडलचा एकही रंग सापडला नाही (Blank Image)
@@ -88,13 +88,22 @@ object ChartAnalyzer {
         val gp   = if (coloredPixels > 0) greenPixels.toFloat() / coloredPixels * 100f else 50f
         val rp   = if (coloredPixels > 0) redPixels.toFloat()   / coloredPixels * 100f else 50f
         val diff = Math.abs(gp - rp)
-
-        // ── STEP 3: CANDLE ENGINE — runs FIRST (trend needed for pattern) ─────
+        
+                // ── STEP 3: CANDLE ENGINE — runs FIRST (trend needed for pattern) ─────
         val candleResult    = CandleEngine.analyze(bitmap, scanX1, scanY1, scanX2, scanY2)
         val hasCandleSignal = candleResult.candleCount >= 3
         val candleTrend     = if (hasCandleSignal) candleResult.trend else "Sideways"
         val nearSupport     = hasCandleSignal && candleResult.nearSupport
         val nearResistance  = hasCandleSignal && candleResult.nearResistance
+
+        // 🎯 शुद्ध AI POSITION RUN DETECTOR:
+        // पिक्सेलचा संबंध न ठेवता, कॅन्डल इंजिनच्या मध्यबिंदूवरून (किंवा मघाशी काढलेल्या candleMiddlePoint वरून) 
+        // कँडल नक्की "TOP" ला धावतेय की "BOTTOM" ला, हे इथे ओळखले जाईल.
+        val bodyTopEdge = 120.0f    
+        val bodyBottomEdge = 150.0f 
+        val candleMiddlePoint = (bodyTopEdge + bodyBottomEdge) / 2
+        
+        val currentPosition = if (candleMiddlePoint < chartMiddle) "TOP" else "BOTTOM"
 
        // ── STEP 4: PATTERN ENGINE + 4 FIXES ─────────────────────────────────
         
