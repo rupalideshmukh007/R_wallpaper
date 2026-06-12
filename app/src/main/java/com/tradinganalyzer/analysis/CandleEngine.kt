@@ -84,6 +84,7 @@ object CandleEngine {
         val closes   = candles.map { 1f - it.closeNorm }
         val lastClose = closes.last()
 
+        // EMA 9 / 20 / 50 / 200
         val ema9List   = calcEma(closes, 9)
         val ema20List  = calcEma(closes, 20)
         val ema50List  = calcEma(closes, 50)
@@ -100,6 +101,7 @@ object CandleEngine {
         val ema50Above  = lastClose > ema50
         val ema200Above = lastClose > ema200
 
+        // Golden Cross / Death Cross
         val goldenCross: Boolean
         val deathCross: Boolean
         if (ema9List.size >= 2 && ema20List.size >= 2) {
@@ -111,20 +113,19 @@ object CandleEngine {
             goldenCross = false; deathCross = false
         }
 
+        // Trend (50-candle Higher Highs/Lows + EMA)
         val bullRatio50 = recent50.count { it.isGreen }.toFloat() / recent50.size.coerceAtLeast(1)
         val half50  = recent50.size / 2
         val first50 = recent50.take(half50)
         val sec50   = recent50.takeLast(half50)
-
-        val fhHigh50 = first50.map { 1f - it.highNorm }.average().toFloat()
-        val shHigh50 = sec50.map   { 1f - it.highNorm }.average().toFloat()
-        val fhLow50  = first50.map { 1f - it.lowNorm  }.average().toFloat()
-        val shLow50  = sec50.map   { 1f - it.lowNorm  }.average().toFloat()
-
-        val higherHighs = shHigh50 > fhHigh50 + 0.01f
-        val higherLows  = shLow50  > fhLow50  + 0.005f
-        val lowerLows   = shLow50  < fhLow50  - 0.005f
-        val lowerHighs  = shHigh50 < fhHigh50 - 0.01f
+        val fhHigh  = first50.map { 1f - it.highNorm }.average().toFloat()
+        val shHigh  = sec50.map   { 1f - it.highNorm }.average().toFloat()
+        val fhLow   = first50.map { 1f - it.lowNorm  }.average().toFloat()
+        val shLow   = sec50.map   { 1f - it.lowNorm  }.average().toFloat()
+        val higherHighs = shHigh > fhHigh + 0.01f
+        val higherLows  = shLow  > fhLow  + 0.005f
+        val lowerLows   = shLow  < fhLow  - 0.005f
+        val lowerHighs  = shHigh < fhHigh - 0.01f
 
         val trend = when {
             (higherHighs && higherLows) ||
@@ -139,16 +140,17 @@ object CandleEngine {
             else      -> (abs(bullRatio50 - 0.5f) * 100f).toInt().coerceIn(0, 40)
         }
 
-        val sortedLowNorms  = recent20.map { it.lowNorm  }.sortedDescending()
-        val sortedHighNorms = recent20.map { it.highNorm }.sorted()
-        val supportLevel    = sortedLowNorms.take(5).average().toFloat()
-        val resistLevel     = sortedHighNorms.take(5).average().toFloat()
-        val nearSupport     = abs(last.lowNorm  - supportLevel) < 0.045f
-        val nearResistance  = abs(last.highNorm - resistLevel)  < 0.045f
+        // Support / Resistance
+        val supportLevel   = recent20.map { it.lowNorm  }.sortedDescending().take(5).average().toFloat()
+        val resistLevel    = recent20.map { it.highNorm }.sorted().take(5).average().toFloat()
+        val nearSupport    = abs(last.lowNorm  - supportLevel) < 0.045f
+        val nearResistance = abs(last.highNorm - resistLevel)  < 0.045f
 
+        // Volume
         val avgVol          = recent20.map { it.pixelVolume }.average()
         val volumeConfirmed = last.pixelVolume > avgVol * 1.15
 
+        // Breakout / Fakeout
         val prev5     = recent20.dropLast(1).takeLast(5)
         val prevHigh5 = prev5.minOfOrNull { it.highNorm } ?: last.highNorm
         val prevLow5  = prev5.maxOfOrNull { it.lowNorm  } ?: last.lowNorm
@@ -157,17 +159,20 @@ object CandleEngine {
         val isBreakout = (brokeUp || brokeDown) && volumeConfirmed
         val isFakeout  = (brokeUp || brokeDown) && !volumeConfirmed
 
+        // RSI (14-period)
         val rsiEstimate = calcRSI(closes.takeLast(14))
 
+        // Candle Position
         val cp = last.closePosition
         val closePositionStr = when {
-            cp >= 0.80f -> "⬆️ Strong Close — near HIGH ${(cp * 100).toInt()}% (Bullish)"
-            cp >= 0.60f -> "↗️ Good Close — upper half ${(cp * 100).toInt()}% (Mildly Bullish)"
-            cp >= 0.40f -> "↔️ Neutral Close — middle ${(cp * 100).toInt()}%"
-            cp >= 0.20f -> "↘️ Weak Close — lower half ${(cp * 100).toInt()}% (Mildly Bearish)"
-            else        -> "⬇️ Weak Close — near LOW ${(cp * 100).toInt()}% (Bearish)"
+            cp >= 0.80f -> "⬆️ Strong Close ${(cp * 100).toInt()}% — near HIGH (Bullish)"
+            cp >= 0.60f -> "↗️ Good Close ${(cp * 100).toInt()}% — upper half (Mildly Bullish)"
+            cp >= 0.40f -> "↔️ Neutral Close ${(cp * 100).toInt()}% — middle of range"
+            cp >= 0.20f -> "↘️ Weak Close ${(cp * 100).toInt()}% — lower half (Mildly Bearish)"
+            else        -> "⬇️ Weak Close ${(cp * 100).toInt()}% — near LOW (Bearish)"
         }
 
+        // Wick Analysis
         val wickAnalysis = when {
             last.upperWickRatio > 0.50f && last.lowerWickRatio < 0.20f ->
                 "🕯️ Heavy Upper Wick (${(last.upperWickRatio * 100).toInt()}%) — Selling pressure at top"
@@ -183,6 +188,7 @@ object CandleEngine {
                 "🕯️ Normal candle — Body ${(last.bodyRatio * 100).toInt()}%"
         }
 
+        // Pattern Context
         val patternContext = when {
             goldenCross                          -> "🌟 Golden Cross (EMA9 > EMA20) — Strong BUY"
             deathCross                           -> "💀 Death Cross (EMA9 < EMA20) — Strong SELL"
@@ -194,13 +200,14 @@ object CandleEngine {
             trend == "Bearish" && nearSupport    -> "Downtrend → Support (Caution)"
             trend == "Sideways" && isBreakout    -> "Range Breakout ✅"
             isFakeout                            -> "Fakeout ⚠️ — Volume confirm नाही"
-            trend == "Bullish"                   -> "Uptrend (${(bullRatio50 * 100).toInt()}% bullish candles)"
-            trend == "Bearish"                   -> "Downtrend (${((1f - bullRatio50) * 100).toInt()}% bearish candles)"
+            trend == "Bullish"                   -> "Uptrend (${(bullRatio50 * 100).toInt()}% bullish)"
+            trend == "Bearish"                   -> "Downtrend (${((1f - bullRatio50) * 100).toInt()}% bearish)"
             else                                 -> "Sideways / Consolidation"
         }
 
+        // Current Candle
         val lastType = when {
-            last.isDoji                              -> "Doji (Uncertainty)"
+            last.isDoji                              -> "Doji (Uncertain)"
             last.isGreen && last.bodyRatio > 0.70f  -> "Strong Bullish (Big body)"
             last.isGreen && cp >= 0.70f              -> "Bullish (Strong close near high)"
             last.isGreen                             -> "Bullish"
@@ -210,8 +217,8 @@ object CandleEngine {
         }
         val currentCandleStr = "$lastType | Vol: ${if (volumeConfirmed) "✅ High" else "⚠️ Weak"}"
 
+        // Signal Scoring
         var buy = 0; var sell = 0
-
         when (trend) { "Bullish" -> buy += 30; "Bearish" -> sell += 30 }
         if (ema9Above)   buy  += 8  else sell += 8
         if (ema20Above)  buy  += 7  else sell += 7
@@ -238,9 +245,9 @@ object CandleEngine {
         if (last.lowerWickRatio > 0.50f) buy  += 8
         if (last.bodyRatio > 0.70f) { if (last.isGreen) buy += 5 else sell += 5 }
         if (!last.isDoji) { if (last.isGreen) buy += 3 else sell += 3 }
-
         buy  = buy.coerceAtLeast(0)
         sell = sell.coerceAtLeast(0)
+
         val total      = (buy + sell).coerceAtLeast(1)
         val signal     = if (buy >= sell) "BUY" else "SELL"
         val winScore   = if (signal == "BUY") buy else sell
@@ -248,30 +255,30 @@ object CandleEngine {
 
         val detailsStr = buildString {
             appendLine("🕯️ Candles Detected  : ${candles.size}")
-            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             appendLine("📈 Trend (50 candles) : $trend ($trendStrength%)")
-            appendLine("   🟢 Bull : ${(bullRatio50 * 100).toInt()}%  |  🔴 Bear : ${((1f - bullRatio50) * 100).toInt()}%")
-            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            appendLine("📊 EMA9   : ${if (ema9Above)  "Above ✅" else "Below ⚠️"}")
-            appendLine("📊 EMA20  : ${if (ema20Above) "Above ✅" else "Below ⚠️"}")
-            appendLine("📊 EMA50  : ${if (ema50Above) "Above ✅" else "Below ⚠️"}")
+            appendLine("   🟢 Bullish : ${(bullRatio50 * 100).toInt()}%  🔴 Bearish : ${((1f - bullRatio50) * 100).toInt()}%")
+            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            appendLine("📊 EMA9   : ${if (ema9Above)   "Above ✅" else "Below ⚠️"}")
+            appendLine("📊 EMA20  : ${if (ema20Above)  "Above ✅" else "Below ⚠️"}")
+            appendLine("📊 EMA50  : ${if (ema50Above)  "Above ✅" else "Below ⚠️"}")
             if (ema200Valid)
-                appendLine("📊 EMA200 : ${if (ema200Above) "Above ✅ Long-term Bull" else "Below ⚠️ Long-term Bear"}")
+                appendLine("📊 EMA200 : ${if (ema200Above) "Above ✅ (Long-term Bull)" else "Below ⚠️ (Long-term Bear)"}")
             else
-                appendLine("📊 EMA200 : ⚠️ Not enough candles (need 200+, have ${candles.size})")
+                appendLine("📊 EMA200 : ⚠️ ${candles.size} candles (200+ needed)")
             if (goldenCross) appendLine("🌟 GOLDEN CROSS — EMA9 > EMA20 → Strong BUY")
             if (deathCross)  appendLine("💀 DEATH CROSS  — EMA9 < EMA20 → Strong SELL")
-            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             appendLine("🕯️ Current Candle:")
             appendLine("   Type     : $lastType")
             appendLine("   $closePositionStr")
             appendLine("   $wickAnalysis")
             appendLine("   Strength : ${last.candleStrengthScore} / 100")
-            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             appendLine("🛡️  Support    : ${if (nearSupport)    "YES — Buy zone ✅" else "No"}")
             appendLine("🚧 Resistance  : ${if (nearResistance) "YES — Sell zone ⚠️" else "No"}")
             appendLine("💥 Breakout    : ${if (isBreakout) "YES ✅" else "No"}")
-            appendLine("⚠️  Fakeout    : ${if (isFakeout)  "YES — Volume confirm नाही ⚠️" else "No"}")
+            appendLine("⚠️  Fakeout    : ${if (isFakeout)  "YES — Volume नाही ⚠️" else "No"}")
             appendLine("📦 Volume      : ${if (volumeConfirmed) "✅ High (${(last.pixelVolume.toFloat() / avgVol * 100).toInt()}% of avg)" else "⚠️ Low (${(last.pixelVolume.toFloat() / avgVol * 100).toInt()}% of avg)"}")
             appendLine("📊 RSI         : $rsiEstimate ${when { rsiEstimate > 70 -> "(Overbought 🔴)"; rsiEstimate < 30 -> "(Oversold 🟢)"; else -> "(Normal ✅)" }}")
             append("🎯 Context     : $patternContext")
@@ -284,7 +291,8 @@ object CandleEngine {
             isBreakout = isBreakout, isFakeout = isFakeout,
             volumeConfirmed = volumeConfirmed, rsiEstimate = rsiEstimate,
             ema9Above = ema9Above, ema20Above = ema20Above,
-            ema50Above = ema50Above, ema200Above = ema200Above, ema200Valid = ema200Valid,
+            ema50Above = ema50Above,
+            ema200Above = ema200Above, ema200Valid = ema200Valid,
             goldenCross = goldenCross, deathCross = deathCross,
             closePositionStr = closePositionStr,
             currentCandleScore = last.candleStrengthScore,
@@ -300,7 +308,6 @@ object CandleEngine {
         bitmap: Bitmap,
         scanX1: Int, scanY1: Int, scanX2: Int, scanY2: Int
     ): List<CandleInfo> {
-
         val zoneW = (scanX2 - scanX1).coerceAtLeast(1)
         val zoneH = (scanY2 - scanY1).coerceAtLeast(1)
         val colGreen = IntArray(zoneW)
@@ -318,8 +325,7 @@ object CandleEngine {
                 if (Color.alpha(px) < 50) continue
                 val r = Color.red(px); val g = Color.green(px); val b = Color.blue(px)
                 if ((r + g + b) / 3 > 212) continue
-                val maxC = max(r, max(g, b))
-                val minC = min(r, min(g, b))
+                val maxC = max(r, max(g, b)); val minC = min(r, min(g, b))
                 val sat  = if (maxC > 0) (maxC - minC).toFloat() / maxC else 0f
                 if (sat < 0.28f) continue
                 val isTeal  = g > 55 && b > 55 && g > r * 1.4f && b > r * 1.4f
@@ -343,7 +349,6 @@ object CandleEngine {
 
         val candles = mutableListOf<CandleInfo>()
         var x = 0; var idx = 0
-
         while (x < zoneW) {
             val gC = colGreen[x]; val rC = colRed[x]
             if (gC + rC < 3) { x++; continue }
@@ -355,7 +360,6 @@ object CandleEngine {
                 if ((eg >= er) != isGreen && abs(eg - er) > 5) break
                 endX++
             }
-
             var totPix = 0; var topY = zoneH; var botY = 0
             for (cx in x until endX) {
                 totPix += colGreen[cx] + colRed[cx]
@@ -389,46 +393,35 @@ object CandleEngine {
             for (y in topY..botY)       { if (density[y] >= thresh) { bodyTop = y; break } }
             for (y in botY downTo topY) { if (density[y] >= thresh) { bodyBot = y; break } }
 
-            val bTopN    = bodyTop.toFloat() / zoneH
-            val bBotN    = bodyBot.toFloat() / zoneH
+            val bTopN   = bodyTop.toFloat() / zoneH
+            val bBotN   = bodyBot.toFloat() / zoneH
             val bodyNorm = (bBotN - bTopN).coerceAtLeast(0f)
             val openNorm  = if (isGreen) bBotN else bTopN
             val closeNorm = if (isGreen) bTopN else bBotN
 
-            val priceHigh  = 1f - highNorm
-            val priceLow   = 1f - lowNorm
-            val priceOpen  = 1f - openNorm
-            val priceClose = 1f - closeNorm
+            val priceHigh  = 1f - highNorm; val priceLow   = 1f - lowNorm
+            val priceOpen  = 1f - openNorm; val priceClose = 1f - closeNorm
             val totalRange = (priceHigh - priceLow).coerceAtLeast(0.001f)
-
             val closePosition = ((priceClose - priceLow) / totalRange).coerceIn(0f, 1f)
-            val bodyHi    = max(priceOpen, priceClose)
-            val bodyLo    = min(priceOpen, priceClose)
+            val bodyHi = max(priceOpen, priceClose); val bodyLo = min(priceOpen, priceClose)
             val upperWick = (priceHigh - bodyHi).coerceAtLeast(0f)
             val lowerWick = (bodyLo    - priceLow).coerceAtLeast(0f)
             val bodyPrSz  = (bodyHi    - bodyLo).coerceAtLeast(0f)
-
             val upperWickRatio = (upperWick / totalRange).coerceIn(0f, 1f)
             val lowerWickRatio = (lowerWick / totalRange).coerceIn(0f, 1f)
             val bodyRatio      = (bodyPrSz  / totalRange).coerceIn(0f, 1f)
-
-            val candleStrengthScore: Int = if (isGreen) {
+            val candleStrengthScore = if (isGreen)
                 ((closePosition * 50f) + (bodyRatio * 30f) - (upperWickRatio * 20f)).toInt().coerceIn(0, 100)
-            } else {
+            else
                 (((1f - closePosition) * 50f) + (bodyRatio * 30f) - (lowerWickRatio * 20f)).toInt().coerceIn(0, 100)
-            }
-
             candles += CandleInfo(
-                index = idx++, isGreen = isGreen,
-                isDoji = bodyNorm < 0.015f,
+                index = idx++, isGreen = isGreen, isDoji = bodyNorm < 0.015f,
                 highNorm = highNorm, lowNorm = lowNorm,
                 openNorm = openNorm, closeNorm = closeNorm,
                 pixelVolume = totPix, bodySize = bodyNorm,
                 closePosition = closePosition,
-                upperWickRatio = upperWickRatio,
-                lowerWickRatio = lowerWickRatio,
-                bodyRatio = bodyRatio,
-                candleStrengthScore = candleStrengthScore
+                upperWickRatio = upperWickRatio, lowerWickRatio = lowerWickRatio,
+                bodyRatio = bodyRatio, candleStrengthScore = candleStrengthScore
             )
             x = endX
         }
