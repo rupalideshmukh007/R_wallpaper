@@ -388,3 +388,4 @@ object ChartAnalyzer {
             deathCross  = if (hasCandleSignal) candleResult.deathCross   else false
         )
     }
+}
