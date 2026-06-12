@@ -209,72 +209,182 @@ if (isBearEngulf) {
     results += PatternResult("Bearish Engulfing", "Bearish", 88, "Strong", 80)
 }
         // 21. Bullish Harami
-        val lTotal = d.leftGreen + d.leftRed
-        val mTotal = d.midGreen  + d.midRed
-        val isBullHarami = lGRatio < 0.42f && mGRatio > 0.52f && mTotal < lTotal
-        if (isBullHarami) results += PatternResult("Bullish Harami", "Bullish", 67, "Medium", 67)
-        // 22. Bearish Harami
-        val isBearHarami = lGRatio > 0.58f && mGRatio < 0.48f && mTotal < lTotal
-        if (isBearHarami) results += PatternResult("Bearish Harami", "Bearish", 67, "Medium", 67)
-        // 23. Harami Cross
-        if ((isBullHarami || isBearHarami) && diff < 7f) {
-            val type = if (d.gp > d.rp) "Bullish" else "Bearish"
-            results += PatternResult("Harami Cross", type, 70, "Medium", 68)
-        }
-        // 24. Piercing Line
-        if (lGRatio < 0.4f && rGRatio > 0.58f && d.trGreen > d.trRed)
-            results += PatternResult("Piercing Line", "Bullish", 71, "Strong", 69)
-        // 25. Dark Cloud Cover
-        if (lGRatio > 0.6f && rGRatio < 0.42f && d.brRed > d.brGreen)
-            results += PatternResult("Dark Cloud Cover", "Bearish", 71, "Strong", 69)
-        // 26. Tweezer Bottom
-        if (bGRatio > 0.55f && d.blGreen > d.blRed && d.brGreen > d.brRed)
-            results += PatternResult("Tweezer Bottom", "Bullish", 65, "Medium", 63)
-        // 27. Tweezer Top
-        if (tGRatio < 0.44f && d.tlRed > d.tlGreen && d.trRed > d.trGreen)
-            results += PatternResult("Tweezer Top", "Bearish", 65, "Medium", 63)
-        // 28. Bullish Kicker
-        if (lGRatio < 0.35f && rGRatio > 0.65f && diff < 10f)
-            results += PatternResult("Bullish Kicker", "Bullish", 76, "Strong", 74)
-        // 29. Bearish Kicker
-        if (lGRatio > 0.65f && rGRatio < 0.35f && diff < 10f)
-            results += PatternResult("Bearish Kicker", "Bearish", 76, "Strong", 74)
-        // 30. Matching Low
-        if (d.blRed > d.blGreen && d.brGreen > d.brRed && bGRatio > 0.5f)
-            results += PatternResult("Matching Low", "Bullish", 63, "Medium", 58)
-        // 31. Matching High
-        if (d.tlGreen > d.tlRed && d.trRed > d.trGreen && tGRatio < 0.5f)
-            results += PatternResult("Matching High", "Bearish", 63, "Medium", 58)
-        // 32. Meeting Lines
-        if (diff < 8f && (lGRatio > 0.6f || lGRatio < 0.4f)) {
-            val type = if (d.gp > d.rp) "Bullish" else "Bearish"
-            results += PatternResult("Meeting Lines", type, 61, "Weak", 50)
-        }
-        // 33. Homing Pigeon
-        if (lGRatio < 0.42f && mGRatio > lGRatio && mGRatio < 0.52f)
-            results += PatternResult("Homing Pigeon", "Bullish", 62, "Medium", 55)
-        // 34. On Neck Pattern  ★NEW
-        if (lGRatio < 0.40f && rGRatio > 0.50f && rGRatio < 0.56f && diff < 12f && bGRatio < 0.48f)
-            results += PatternResult("On Neck Pattern", "Bearish", 64, "Medium", 60)
-        // 35. In Neck Pattern  ★NEW
-        if (lGRatio < 0.40f && rGRatio > 0.53f && rGRatio < 0.59f && d.bottomRed > d.bottomGreen)
-            results += PatternResult("In Neck Pattern", "Bearish", 63, "Medium", 58)
-        // 36. Thrusting Pattern  ★NEW
-        if (lGRatio < 0.42f && rGRatio > 0.55f && tGRatio < 0.45f && diff > 10f)
-            results += PatternResult("Thrusting Pattern", "Bearish", 62, "Medium", 57)
-        // 37. Separating Lines Bullish  ★NEW
-        if (lGRatio < 0.42f && rGRatio > 0.60f && diff > 15f)
-            results += PatternResult("Separating Lines Bullish", "Bullish", 67, "Medium", 65)
-        // 38. Separating Lines Bearish  ★NEW
-        if (lGRatio > 0.58f && rGRatio < 0.40f && diff > 15f)
-            results += PatternResult("Separating Lines Bearish", "Bearish", 67, "Medium", 65)
-        // 39. Two Crows  ★NEW
-        if (lGRatio > 0.55f && mGRatio < 0.48f && rGRatio < 0.45f && d.trRed > d.trGreen)
-            results += PatternResult("Two Crows", "Bearish", 68, "Medium", 66)
-        // 40. Stick Sandwich  ★NEW
-        if (lGRatio < 0.45f && mGRatio > 0.55f && rGRatio < 0.45f && bGRatio > 0.5f)
-            results += PatternResult("Stick Sandwich", "Bullish", 65, "Medium", 62)
+val isBullHarami =
+    bodyLength <= totalRange * 0.40f &&
+    position == "BOTTOM" &&
+    c.isGreen
 
+if (isBullHarami)
+    results += PatternResult("Bullish Harami", "Bullish", 67, "Medium", 67)
+
+// 22. Bearish Harami
+val isBearHarami =
+    bodyLength <= totalRange * 0.40f &&
+    position == "TOP" &&
+    !c.isGreen
+
+if (isBearHarami)
+    results += PatternResult("Bearish Harami", "Bearish", 67, "Medium", 67)
+
+// 23. Harami Cross
+if (
+    bodyLength <= totalRange * 0.10f &&
+    (position == "TOP" || position == "BOTTOM")
+) {
+    val type = if (position == "BOTTOM") "Bullish" else "Bearish"
+    results += PatternResult("Harami Cross", type, 70, "Medium", 68)
+}
+
+// 24. Piercing Line
+if (
+    c.isGreen &&
+    bodyLength >= totalRange * 0.60f &&
+    position == "BOTTOM"
+) {
+    results += PatternResult("Piercing Line", "Bullish", 71, "Strong", 69)
+}
+
+// 25. Dark Cloud Cover
+if (
+    !c.isGreen &&
+    bodyLength >= totalRange * 0.60f &&
+    position == "TOP"
+) {
+    results += PatternResult("Dark Cloud Cover", "Bearish", 71, "Strong", 69)
+}
+
+// 26. Tweezer Bottom
+if (
+    lowerWick >= bodyLength * 1.5f &&
+    position == "BOTTOM"
+) {
+    results += PatternResult("Tweezer Bottom", "Bullish", 65, "Medium", 63)
+}
+
+// 27. Tweezer Top
+if (
+    upperWick >= bodyLength * 1.5f &&
+    position == "TOP"
+) {
+    results += PatternResult("Tweezer Top", "Bearish", 65, "Medium", 63)
+}
+
+// 28. Bullish Kicker
+if (
+    c.isGreen &&
+    bodyLength >= totalRange * 0.80f &&
+    position == "BOTTOM"
+) {
+    results += PatternResult("Bullish Kicker", "Bullish", 76, "Strong", 74)
+}
+
+// 29. Bearish Kicker
+if (
+    !c.isGreen &&
+    bodyLength >= totalRange * 0.80f &&
+    position == "TOP"
+) {
+    results += PatternResult("Bearish Kicker", "Bearish", 76, "Strong", 74)
+}
+
+// 30. Matching Low
+if (
+    !c.isGreen &&
+    lowerWick <= totalRange * 0.05f &&
+    position == "BOTTOM"
+) {
+    results += PatternResult("Matching Low", "Bullish", 63, "Medium", 58)
+}
+
+// 31. Matching High
+if (
+    c.isGreen &&
+    upperWick <= totalRange * 0.05f &&
+    position == "TOP"
+) {
+    results += PatternResult("Matching High", "Bearish", 63, "Medium", 58)
+}
+
+// 32. Meeting Lines
+if (
+    bodyLength >= totalRange * 0.65f
+) {
+    val type = if (c.isGreen) "Bullish" else "Bearish"
+    results += PatternResult("Meeting Lines", type, 61, "Weak", 50)
+}
+
+// 33. Homing Pigeon
+if (
+    !c.isGreen &&
+    bodyLength <= totalRange * 0.35f &&
+    position == "BOTTOM"
+) {
+    results += PatternResult("Homing Pigeon", "Bullish", 62, "Medium", 55)
+}
+
+// 34. On Neck Pattern
+if (
+    !c.isGreen &&
+    position == "TOP" &&
+    upperWick <= totalRange * 0.10f
+) {
+    results += PatternResult("On Neck Pattern", "Bearish", 64, "Medium", 60)
+}
+
+// 35. In Neck Pattern
+if (
+    !c.isGreen &&
+    position == "TOP" &&
+    bodyLength >= totalRange * 0.50f
+) {
+    results += PatternResult("In Neck Pattern", "Bearish", 63, "Medium", 58)
+}
+
+// 36. Thrusting Pattern
+if (
+    !c.isGreen &&
+    position == "TOP" &&
+    bodyLength in (totalRange * 0.40f)..(totalRange * 0.60f)
+) {
+    results += PatternResult("Thrusting Pattern", "Bearish", 62, "Medium", 57)
+}
+
+// 37. Separating Lines Bullish
+if (
+    c.isGreen &&
+    bodyLength >= totalRange * 0.70f &&
+    position == "BOTTOM"
+) {
+    results += PatternResult("Separating Lines Bullish", "Bullish", 67, "Medium", 65)
+}
+
+// 38. Separating Lines Bearish
+if (
+    !c.isGreen &&
+    bodyLength >= totalRange * 0.70f &&
+    position == "TOP"
+) {
+    results += PatternResult("Separating Lines Bearish", "Bearish", 67, "Medium", 65)
+}
+
+// 39. Two Crows
+if (
+    !c.isGreen &&
+    bodyLength <= totalRange * 0.45f &&
+    position == "TOP"
+) {
+    results += PatternResult("Two Crows", "Bearish", 68, "Medium", 66)
+}
+
+// 40. Stick Sandwich
+if (
+    c.isGreen &&
+    bodyLength >= totalRange * 0.50f &&
+    position == "BOTTOM"
+) {
+    results += PatternResult("Stick Sandwich", "Bullish", 65, "Medium", 62)
+}
+        
         // ════════════════════════════════════════════════════════════
         // CATEGORY 3 — THREE CANDLE PATTERNS (41–61)
         // ════════════════════════════════════════════════════════════
