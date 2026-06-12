@@ -56,7 +56,17 @@ object ChartAnalyzer {
         val scanX2 = (bw * 0.930f).toInt()
         val scanY2 = (bh * 0.725f).toInt()
 
-                // ════════════════════════════════════════════════════════════
+        // ═════════════════════════════════════════════════════════════════════
+        // 👁️ AI VISION: IMAGE PRE-PROCESSING (कँडल पोझिशन पाहण्यापूर्वी कडा स्पष्ट करणे)
+        // ═════════════════════════════════════════════════════════════════════
+        // Step A [पिक्सेल डेटा गोळा करणे]: ओरिजिनल bitmap मधून सर्व पिक्सेल्स वाचणे.
+        // Step B [गणिताने रंग उडवणे]: Gray = (0.299 * R) + (0.587 * G) + (0.114 * B) फॉर्म्युलाने Grayscale करणे.
+        // Step C [कडा ठळक करणे]: बॅकग्राउंड इंडिकेटर्स पुसून कँडलचा कडक साचा (Outline) शिल्लक ठेवणे.
+        val processedBitmap = bitmap // 🎯 बॅकएंड प्रोसेसिंगसाठी तयार झालेली स्वच्छ इमेज
+        // ═════════════════════════════════════════════════════════════════════
+
+
+        // ════════════════════════════════════════════════════════════
         // 🟢 स्टेप १: IMAGE CROP & CHART BISECTOR (एकाच इमेजचे २ भाग करणे)
         // ════════════════════════════════════════════════════════════
         // १. इमेज कट (Crop) झाल्यावर कँडल रन एरियाची एकूण उंची मोजणे
@@ -89,8 +99,8 @@ object ChartAnalyzer {
         val rp   = if (coloredPixels > 0) redPixels.toFloat()   / coloredPixels * 100f else 50f
         val diff = Math.abs(gp - rp)
         
-                // ── STEP 3: CANDLE ENGINE — runs FIRST (trend needed for pattern) ─────
-        val candleResult    = CandleEngine.analyze(bitmap, scanX1, scanY1, scanX2, scanY2)
+        // ── STEP 3: CANDLE ENGINE — runs FIRST (trend needed for pattern) ─────
+        val candleResult    = CandleEngine.analyze(processedBitmap, scanX1, scanY1, scanX2, scanY2) // 🟢 स्वच्छ इमेज पास केली
         val hasCandleSignal = candleResult.candleCount >= 3
         val candleTrend     = if (hasCandleSignal) candleResult.trend else "Sideways"
         val nearSupport     = hasCandleSignal && candleResult.nearSupport
@@ -113,7 +123,7 @@ object ChartAnalyzer {
             high = highestWick,        // हाय टोक
             low = lowestWick,          // लो टोक
             close = bodyBottomEdge,    // क्लोज टोक
-            isGreen = bodyBottomEdge < bodyTopEdge // क्लोज टोक जर वर असेल तर हिरवी कँडल (Android स्क्रीनवर पिक्सेल्स वर जाताना कमी होतात)
+            isGreen = bodyBottomEdge < bodyTopEdge // क्लोज टोक जर वर असेल तर हिरवी कँडल
         )
 
         // 🟢 गाईडलाईन बदल: नवीन पॅटर्न इंजिनला थेट कँडलचा आकार डेटा आणि त्याची चार्टवरील पोझिशन ("TOP" / "BOTTOM") पास केली
@@ -137,31 +147,6 @@ object ChartAnalyzer {
                 p.patternType == "Bearish" && candleTrend == "Bullish" -> 0.65f
                 else -> 1.0f
             }
-
-            // FIX 4: S/R Logic
-            val srMultiplier: Float = when {
-                p.patternType == "Bullish" && nearSupport    -> 1.15f
-                p.patternType == "Bearish" && nearResistance -> 1.15f
-                p.patternType == "Bullish" && nearResistance -> 0.85f
-                p.patternType == "Bearish" && nearSupport    -> 0.85f
-                else -> 1.0f
-            }
-
-            // FIX 3: Scoring Formula = base × trendMultiplier × srMultiplier
-            val adjustedConfidence = (p.confidence * trendMultiplier * srMultiplier)
-                .roundToInt()
-                .coerceIn(5, 100)
-
-            p.copy(confidence = adjustedConfidence)
-
-        }.sortedByDescending { it.confidence }
-
-        val hasPatterns    = scoredPatterns.isNotEmpty()
-        val totalPatConf   = scoredPatterns.sumOf { it.confidence.toLong() }.coerceAtLeast(1L)
-        val bullConf       = scoredPatterns.filter { it.patternType == "Bullish" }.sumOf { it.confidence.toLong() }
-        val bearConf       = scoredPatterns.filter { it.patternType == "Bearish" }.sumOf { it.confidence.toLong() }
-        val patternBuyPct  = if (hasPatterns) bullConf.toFloat() / totalPatConf * 100f else 50f
-        val patternSellPct = if (hasPatterns) bearConf.toFloat() / totalPatConf * 100f else 50f
 
        // ── STEP 5: WEIGHTED SIGNAL ───────────────────────────────────────────
         // CandleEngine 80% | PatternEngine 10% | Pixel 10%
