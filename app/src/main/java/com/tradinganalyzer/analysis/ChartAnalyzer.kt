@@ -148,38 +148,38 @@ object ChartAnalyzer {
 
         val rsiValue = 55 // डिफॉल्ट सेफ इंडिकेटर
 
-                // ── STEP 4: PATTERN ENGINE CALL (MASTER FIXED VERSION) ──
+       // ── STEP 4: PATTERN ENGINE CALL (OBJECT FIXED VERSION) ──
 
-        // 🎯 1. कँडल्सचा अंदाज मोजणे
         val liveCandleTop = highestWickY + (totalLength * 0.20f)
-        val currentCandleData = CandleShapeData(
+        val currentCandleData = Candle(
             open = liveCandleTop,
             high = highestWickY,
             low = lowestWickY,
-            close = bodyBottomEdge,
-            isGreen = (candleResult.signal == "BUY")
+            close = bodyBottomEdge
         )
 
-        // 🎯 2. Call Pattern Engine (आपण companion object वापरल्यामुळे थेट नाव टाकून कॉल)
+        val midPoint = (highestWickY + lowestWickY) / 2f
+        val currentPosition = when {
+            bodyBottomEdge > midPoint -> "TOP"
+            bodyBottomEdge < midPoint -> "BOTTOM"
+            else -> "MIDDLE"
+        }
+
+        // 🎯 थेट Object ला कॉल करणे (कंसाची जोडी () काढली आहे)
         val rawPatterns = PatternEngine.detect(currentCandleData, currentPosition)
 
-        // 🎯 3. डुप्लिकेट्स फिल्टर करणे (it.patternName नुसार)
         val scoredPatterns = rawPatterns
             .groupBy { it.patternName }
-            .map { (_, group) -> group.maxByOrNull { it.confidence }!! }
+            .map { it.value.maxByOrNull { p -> p.confidence }!! }
 
-        // 🎯 4. सेफ्टी चेक
-        val hasPatterns = scoredPatterns.isNotEmpty()
-
-        // 🎯 5. Buy/Sell percentage logic (it.patternType नुसार)
-        val patternBuyCount = scoredPatterns.count { it.patternType == "BULLISH" || it.patternType == "Bullish" }
-        val patternSellCount = scoredPatterns.count { it.patternType == "BEARISH" || it.patternType == "Bearish" }
+        val patternBuyCount = scoredPatterns.count { it.patternType == "BULLISH" }
+        val patternSellCount = scoredPatterns.count { it.patternType == "BEARISH" }
 
         val total = (patternBuyCount + patternSellCount).coerceAtLeast(1)
 
-        val patternBuyPct = (patternBuyCount.toFloat() / total) * 100f
-        val patternSellPct = (patternSellCount.toFloat() / total) * 100f
-
+        val patternBuyPct = patternBuyCount * 100f / total
+        val patternSellPct = 100f - patternBuyPct
+        
 
         // ── STEP 5: WEIGHTED SIGNAL SYSTEM ──
         val candleBuyPct = if (candleResult.signal == "BUY") candleResult.confidence.toFloat() else (100f - candleResult.confidence)
