@@ -18,7 +18,7 @@ data class OhlcCandle(
     val isGreen: Boolean get() = close > open
 }
 
-// 🎯 २. रिझल्ट स्ट्रक्चर मॉडेल (ChartAnalyzer च्या 'detectedPatterns' सोबत सुसंगत)
+// 🎯 २. रिझल्ट स्ट्रक्चर मॉडेल
 data class PatternResult(
     val patternName: String,
     val patternType: String,
@@ -40,23 +40,6 @@ class PatternEngine {
             ema = closes[i] * k + ema * (1 - k)
         }
         return ema
-    }
-
-    // ==========================================
-    // RSI (Relative Strength Index)
-    // ==========================================
-    fun rsi(closes: List<Float>, period: Int = 14): Float {
-        if (closes.size < 2) return 50f
-        var gain = 0f
-        var loss = 0f
-
-        for (i in 1 until closes.size) {
-            val diff = closes[i] - closes[i - 1]
-            if (diff >= 0) gain += diff else loss += abs(diff)
-        }
-
-        val rs = if (loss == 0f) 100f else gain / loss
-        return 100 - (100 / (1 + rs))
     }
 
     // ==========================================
@@ -101,9 +84,11 @@ class PatternEngine {
             }
         }
 
-        // =====================================================================
-        // 🔥 1 TO 100 PATTERNS ENGINE LAYER
-        // =====================================================================
+        // ❌ FALSE SIGNAL FILTER LAYER (बाजार साईडवेज असताना खोटे सिग्नल्स ब्लॉक करणे)
+        if (rsiVal in 45f..55f && body < range * 0.2f) {
+            results += PatternResult("Sideways Market", "NEUTRAL", 50, "W", 89)
+            return results
+        }
 
         // ───────── SINGLE CANDLE (1–25) ─────────
         if (body <= range * 0.1f) {
@@ -210,8 +195,22 @@ class PatternEngine {
         return results
     }
 
-    // static फॉरमॅटर जो ChartAnalyzer ला थेट विना-ऑब्जेक्ट लागेल
+    // 🎯 फिक्स: या सर्व गोष्टी आपण companion object मध्ये टाकल्यात जेणेकरून ChartAnalyzer ला डायरेक्ट स्टॅटिक मिळतील
     companion object {
+        fun rsi(closes: List<Float>, period: Int = 14): Float {
+            if (closes.size < 2) return 50f
+            var gain = 0f
+            var loss = 0f
+
+            for (i in 1 until closes.size) {
+                val diff = closes[i] - closes[i - 1]
+                if (diff >= 0) gain += diff else loss += abs(diff)
+            }
+
+            val rs = if (loss == 0f) 100f else gain / loss
+            return 100 - (100 / (1 + rs))
+        }
+
         fun formatDisplay(patterns: List<PatternResult>, topN: Int = 5): String {
             if (patterns.isEmpty() || (patterns.size == 1 && patterns.first().patternName == "No Clear Pattern")) {
                 return "AI Vision: No clear mathematical pattern found."
