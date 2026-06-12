@@ -148,14 +148,10 @@ object ChartAnalyzer {
 
         val rsiValue = 55 // डिफॉल्ट सेफ इंडिकेटर
 
-        // ── STEP 4: PATTERN ENGINE CALL ──
-        val currentCandleData = CandleShapeData(
-                // ── STEP 4: PATTERN ENGINE CALL (नव्या इंजिननुसार अपडेट) ──
-        
-        // 🎯 १. शेवटच्या लाईव्ह कँडलचा अंदाज मोजणे
-        val liveCandleTop = highestWickY + (totalLength * 0.20f)
-        val liveCandleBottom = lowestWickY - (totalLength * 0.20f)
+                // ── STEP 4: PATTERN ENGINE CALL (MASTER FIXED VERSION) ──
 
+        // 🎯 1. कँडल्सचा अंदाज मोजणे
+        val liveCandleTop = highestWickY + (totalLength * 0.20f)
         val currentCandleData = CandleShapeData(
             open = liveCandleTop,
             high = highestWickY,
@@ -164,21 +160,25 @@ object ChartAnalyzer {
             isGreen = (candleResult.signal == "BUY")
         )
 
-        // 🎯 २. नव्या PatternEngine च्या companion object ला डायरेक्ट कॉल करणे
+        // 🎯 2. Call Pattern Engine (आपण companion object वापरल्यामुळे थेट नाव टाकून कॉल)
         val rawPatterns = PatternEngine.detect(currentCandleData, currentPosition)
 
-        // ३. डुप्लिकेट फिल्टर (पॅटर्नचे नाव 'patternName' नुसार ग्रुप करणे)
+        // 🎯 3. डुप्लिकेट्स फिल्टर करणे (it.patternName नुसार)
         val scoredPatterns = rawPatterns
             .groupBy { it.patternName }
             .map { (_, group) -> group.maxByOrNull { it.confidence }!! }
 
+        // 🎯 4. सेफ्टी चेक
         val hasPatterns = scoredPatterns.isNotEmpty()
 
-        // ४. नव्या 'patternType' नुसार बुलीश काउंट मोजणे
+        // 🎯 5. Buy/Sell percentage logic (it.patternType नुसार)
         val patternBuyCount = scoredPatterns.count { it.patternType == "BULLISH" || it.patternType == "Bullish" }
-        val totalPatternCount = scoredPatterns.size.coerceAtLeast(1)
-        val patternBuyPct = (patternBuyCount.toFloat() / totalPatternCount) * 100f
-        val patternSellPct = 100f - patternBuyPct
+        val patternSellCount = scoredPatterns.count { it.patternType == "BEARISH" || it.patternType == "Bearish" }
+
+        val total = (patternBuyCount + patternSellCount).coerceAtLeast(1)
+
+        val patternBuyPct = (patternBuyCount.toFloat() / total) * 100f
+        val patternSellPct = (patternSellCount.toFloat() / total) * 100f
 
 
         // ── STEP 5: WEIGHTED SIGNAL SYSTEM ──
