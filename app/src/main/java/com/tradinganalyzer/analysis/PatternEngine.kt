@@ -24,7 +24,11 @@ object PatternEngine {
         // 🚨 १. डेटा व्हॅलिडेशन सेफ्टी चेक: डेटा इनव्हॅलिड असेल तर इथेच ब्रेक मारा (Crash Protection)
         if (c.high <= c.low) return emptyList()
 
-        // 🔠 २. केस-सेन्सिटिव्हिटी फिक्स: पोझिशन नेहमी कॅपिटल अक्षरात कन्व्हर्ट करणे
+        // 🕯️ २. Tiny Candle Filter: जर कँडल खूपच बारीक असेल, तर फॉल्स सिग्नल्स रोखण्यासाठी इथेच ब्रेक मारा
+        val checkRange = (c.high - c.low)
+        if (checkRange < 3.0f) return emptyList() // ३ पिक्सेलपेक्षा लहान कॅन्डल असेल तर इग्नोर करा
+
+        // 🔠 ३. केस-सेन्सिटिव्हिटी फिक्स: पोझिशन नेहमी कॅपिटल अक्षरात कन्व्हर्ट करणे
         val pos = position.uppercase()
 
         val results = mutableListOf<PatternResult>()
