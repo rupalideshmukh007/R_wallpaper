@@ -167,7 +167,7 @@ object ChartAnalyzer {
 
         // FIX 1 — DUPLICATE DETECTION: same pattern name → keep highest confidence
         val dedupedPatterns = rawPatterns
-            .groupBy { it.name }
+            .groupBy { it.patternName }
             .map { (_, group) -> group.maxByOrNull { it.confidence }!! }
 
         // FIX 2 + 3 + 4 — TREND VALIDATION + SCORING FORMULA + S/R LOGIC
