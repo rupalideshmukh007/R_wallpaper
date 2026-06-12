@@ -83,21 +83,40 @@ object PatternEngine {
         // 4. Long-Legged Doji
         if (diff < 6f && d.colorRatio > 0.08f)
             results += PatternResult("Long-Legged Doji", "Neutral", 63, "Weak", 40)
-        // 5. Hammer
-        val isHammer = d.topRed > d.topGreen * 1.4f && d.bottomGreen > d.bottomRed * 1.3f && diff < 22f
+                // =====================================================================
+        // 📐 AI VISION: RULE-BASED PATTERN DETECTION (शुद्ध गणिताचे गुणोत्तर नियम)
+        // =====================================================================
+        
+        // आधी कँडलच्या शरीराचे आणि शेंडीचे (Wick) अंतर मोजून घेणे
+        val bodyLength = Math.abs(c.open - c.close).coerceAtLeast(1f)
+        val upperWick  = Math.abs(c.high - Math.min(c.open, c.close))
+        val lowerWick  = Math.abs(c.low - Math.max(c.open, c.close))
+
+        // 5. Hammer (हातोडा) चा शुद्ध गणिताचा नियम
+        val isHammer = (lowerWick >= bodyLength * 2f) && 
+                       (upperWick <= bodyLength * 0.5f) && 
+                       (position == "BOTTOM")
+
         if (isHammer) {
-            val c = (62 + diff / 2).toInt().coerceIn(62, 83)
-            results += PatternResult("Hammer", "Bullish", c, str(c), 65)
+            val cScore = (65 + (lowerWick / bodyLength) * 5).toInt().coerceIn(65, 90)
+            results += PatternResult("Hammer", "Bullish", cScore, str(cScore), 65)
         }
-        // 6. Inverted Hammer
+
+        // 6. Inverted Hammer (हा जुना कोड तसाच राहील)
         val isInvHammer = d.topGreen > d.topRed * 1.4f && d.bottomRed > d.bottomGreen && diff < 20f
         if (isInvHammer) results += PatternResult("Inverted Hammer", "Bullish", 63, "Medium", 57)
-        // 7. Shooting Star
-        val isShootingStar = d.topGreen > d.bottomGreen * 1.5f && d.rp >= d.gp - 12f
+
+        // 7. Shooting Star (तुटता तारा) चा शुद्ध गणिताचा नियम
+        val isShootingStar = (upperWick >= bodyLength * 2f) && 
+                             (lowerWick <= bodyLength * 0.5f) && 
+                             (position == "TOP")
+
         if (isShootingStar) {
-            val c = (62 + diff / 2).toInt().coerceIn(62, 83)
-            results += PatternResult("Shooting Star", "Bearish", c, str(c), 65)
+            val cScore = (65 + (upperWick / bodyLength) * 5).toInt().coerceIn(65, 90)
+            results += PatternResult("Shooting Star", "Bearish", cScore, str(cScore), 65)
         }
+        // =====================================================================
+        
         // 8. Hanging Man
         val isHangingMan = d.topRed > d.topGreen * 1.35f && d.bottomRed > d.bottomGreen * 1.2f && d.rp > 50f
         if (isHangingMan) results += PatternResult("Hanging Man", "Bearish", 64, "Medium", 62)
